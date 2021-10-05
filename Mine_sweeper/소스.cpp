@@ -12,12 +12,13 @@
 
 //Video Link : https://youtu.be/PhLAzSXGnGQ
 
-static HANDLE hStdin;
-static DWORD fdwSaveOldMode;
-
+//Singleton 클래스
+//====================================
 class Screen;
-class Mine;
+class Input;
 class MineManager;
+//=====================================
+class Mine;
 
 class Screen {
 private:
@@ -25,8 +26,6 @@ private:
 	int		height;
 	int		size;
 	char* canvas;
-
-public:
 
 	// constructor (생성자 함수) 메모리공간상에 적재되는 순간 호출되는
 	Screen(int width = 10, int height = 10)
@@ -53,6 +52,17 @@ public:
 		delete[] canvas;
 		canvas = nullptr;
 		width = 0; height = 0;
+	}
+
+public:
+
+	static Screen* instance;
+	static Screen* getInstance(int width,int height)
+	{
+		if (instance == nullptr)
+			instance = new Screen(width, height);
+
+		return instance;
 	}
 
 	int get_NumEmptyCanvas()
@@ -94,7 +104,6 @@ public:
 	void draw(int x,int y ,MineManager* mines);
 	void draw(MineManager* mines);
 };
-
 class Mine
 {
 private:
@@ -120,16 +129,30 @@ public:
 		return pos.y;
 	}
 };
-
 class MineManager //mines num_size check // pos_x,y check 
 {
 private :
 	Mine* mines;
 	int minesNumSize;
-public :
 	MineManager(int minesNumSize) :minesNumSize(minesNumSize)
 	{
 		mines = (new Mine[minesNumSize]);
+	}
+	~MineManager()
+	{
+		delete[] mines;
+		mines = nullptr;
+		minesNumSize = 0;
+	}
+public :
+	static MineManager* instance;
+
+	static MineManager* getInstance(int minesNumSize)
+	{
+		if (instance == nullptr)
+			instance = new MineManager(minesNumSize);
+
+		return instance;
 	}
 
 	void SetMinesPos(Screen* screen)
@@ -174,12 +197,98 @@ public :
 		return minesNumSize;
 	}
 
-	~MineManager()
+};
+class Input
+{
+private :
+	HANDLE hStdin;
+	DWORD fdwSaveOldMode;
+	DWORD cNumRead, fdwMode, i;
+	INPUT_RECORD irInBuf[128];
+	int counter = 0;
+	char blankChars[80];
+
+	Input()
 	{
-		delete[] mines;
-		mines = nullptr;
-		minesNumSize = 0;
+		memset(blankChars, ' ', 80);
+		blankChars[79] = '\0';
+		hStdin = GetStdHandle(STD_INPUT_HANDLE);
+		if (hStdin == INVALID_HANDLE_VALUE)
+			ErrorExit("GetStdHandle");
+		if (!GetConsoleMode(hStdin, &fdwSaveOldMode))
+			ErrorExit("GetConsoleMode");
+
+		fdwMode = ENABLE_EXTENDED_FLAGS;
+		if (!SetConsoleMode(hStdin, fdwMode))
+			ErrorExit("SetConsoleMode");
+
+		fdwMode = ENABLE_WINDOW_INPUT | ENABLE_MOUSE_INPUT;
+		if (!SetConsoleMode(hStdin, fdwMode))
+			ErrorExit("SetConsoleMode");
 	}
+
+	~Input()
+	{
+		SetConsoleMode(hStdin, fdwSaveOldMode);
+	}
+
+	void ErrorExit(const char*);
+public :
+	static Input* instance;
+
+	static Input* getInstance()
+	{
+		if (instance == nullptr)
+			instance = new Input();
+
+		return instance;
+	}
+
+	void readInput()
+	{
+		if (!GetNumberOfConsoleInputEvents(hStdin, &cNumRead)) 
+		{
+			cNumRead = 0;
+			return;
+		}
+
+		if (cNumRead == 0) return;
+
+		Borland::gotoxy(0, 14);
+		printf("number of inputs %d\n", cNumRead);
+
+
+		if (!ReadConsoleInput(
+			hStdin,      // input buffer handle
+			irInBuf,     // buffer to read into
+			128,         // size of read buffer
+			&cNumRead)) // number of records read
+			ErrorExit("ReadConsoleInput");
+
+		Borland::gotoxy(0, 0);
+	}
+	
+	Position getMouseButtonDown()
+	{
+		Position pos;
+
+		if (cNumRead == 0) return pos;
+		
+		
+		for (int i = 0; i < cNumRead; i++)
+		{
+			if (irInBuf[i].EventType != MOUSE_EVENT) continue;
+			
+			if (irInBuf[i].Event.MouseEvent.dwButtonState == FROM_LEFT_1ST_BUTTON_PRESSED)
+			{
+				pos.x = irInBuf[i].Event.MouseEvent.dwMousePosition.X;
+				pos.y = irInBuf[i].Event.MouseEvent.dwMousePosition.Y;
+			}
+		}
+
+		return pos;
+	}
+	
 };
 
 void Screen::draw(int x,int y,MineManager* mines)
@@ -202,6 +311,7 @@ void Screen::draw(int x,int y,MineManager* mines)
 
 	canvas[(width + 1) * x + y] = num;
 }
+
 //if player finish games and then show map
 void Screen :: draw (MineManager* mines)
 {
@@ -213,77 +323,47 @@ void Screen :: draw (MineManager* mines)
 	}
 }
 
+void Input::ErrorExit(const char* lpszMessage)
+{
+	fprintf(stderr, "%s\n", lpszMessage);
 
-static char blankChars[80];
-static void ErrorExit(const char*);
-static Position MouseEventProc(MOUSE_EVENT_RECORD);
+	// Restore input mode on exit.
+
+	SetConsoleMode(hStdin, fdwSaveOldMode);
+
+	ExitProcess(0);
+}
+
+
+Input* Input::instance = nullptr;
+MineManager* MineManager::instance = nullptr;
+Screen* Screen::instance = nullptr;
 
 int main()
 {
 	srand(time(nullptr));
 	bool winGame = false;
-	Screen  screen(10, 10);
-	MineManager mines(rand() % 10 + 10);
+	Screen* screen = Screen::getInstance(10, 10);
+	MineManager* mines = MineManager::getInstance(rand() % 10 + 10);
+	Input *input = Input::getInstance();
 	Position Mouse_Click_pos;
-	mines.SetMinesPos(&screen);
 
-	//mouse input 
-	//===========================================================
-	DWORD cNumRead, fdwMode, i;
-	INPUT_RECORD irInBuf[128];
-	int counter = 0;
-
-	memset(blankChars, ' ', 80);
-	blankChars[79] = '\0';
-	hStdin = GetStdHandle(STD_INPUT_HANDLE);
-	if (hStdin == INVALID_HANDLE_VALUE)
-		ErrorExit("GetStdHandle");
-	if (!GetConsoleMode(hStdin, &fdwSaveOldMode))
-		ErrorExit("GetConsoleMode");
-
-	fdwMode = ENABLE_EXTENDED_FLAGS;
-	if (!SetConsoleMode(hStdin, fdwMode))
-		ErrorExit("SetConsoleMode");
-
-	fdwMode = ENABLE_WINDOW_INPUT | ENABLE_MOUSE_INPUT;
-	if (!SetConsoleMode(hStdin, fdwMode))
-		ErrorExit("SetConsoleMode");
-	//===========================================================
+	mines->SetMinesPos(screen);
 
 	bool isLooping = true;
-	screen.clear();
+	screen->clear();
 	while (isLooping) 
 	{
-		if (GetNumberOfConsoleInputEvents(hStdin, &cNumRead))
-		{
-			if (cNumRead > 0) 
-			{
-				if (!ReadConsoleInput(
-					hStdin,      // input buffer handle
-					irInBuf,     // buffer to read into
-					128,         // size of read buffer
-					&cNumRead)) // number of records read
-					ErrorExit("ReadConsoleInput");
+		screen->render();
+		input->readInput();
 
-				// Dispatch the events to the appropriate handler.
-
-				for (i = 0; i < cNumRead; i++)
-				{
-					if (irInBuf[i].EventType == MOUSE_EVENT)
-					{
-						Mouse_Click_pos = MouseEventProc(irInBuf[i].Event.MouseEvent);
-					}
-				}
-			}
-		}
-
-		screen.render();
+		Mouse_Click_pos = input->getMouseButtonDown();
 
 		//Clicked Mouse Left_button
 		if(Mouse_Click_pos.x >= 0)
 		{
-			isLooping = mines.Check_Click_Mine(Mouse_Click_pos.y, Mouse_Click_pos.x);
-			screen.draw(Mouse_Click_pos.y, Mouse_Click_pos.x, &mines);
+			isLooping = mines->Check_Click_Mine(Mouse_Click_pos.y, Mouse_Click_pos.x);
+			screen->draw(Mouse_Click_pos.y, Mouse_Click_pos.x, mines);
 		}
 
 		//Click Mine
@@ -293,7 +373,7 @@ int main()
 		}
 
 		//Finish Game
-		if (screen.get_NumEmptyCanvas() == mines.GetminesNumSize())
+		if (screen->get_NumEmptyCanvas() == mines->GetminesNumSize())
 		{
 			winGame = true;
 			break;
@@ -302,8 +382,8 @@ int main()
 		Sleep(100);
 	}
 
-	screen.draw(&mines);
-	screen.render();
+	screen->draw(mines);
+	screen->render();
 
 	if (winGame)
 	{
@@ -317,45 +397,3 @@ int main()
 	return 0;
 }
 
-void ErrorExit(const char* lpszMessage)
-{
-	fprintf(stderr, "%s\n", lpszMessage);
-
-	// Restore input mode on exit.
-
-	SetConsoleMode(hStdin, fdwSaveOldMode);
-
-	ExitProcess(0);
-}
-
-static Position MouseEventProc(MOUSE_EVENT_RECORD mer)
-{
-	Borland::gotoxy(0, 12);
-	Position pos;
-	printf("%s\r", blankChars);
-#ifndef MOUSE_HWHEELED
-#define MOUSE_HWHEELED 0x0008
-#endif
-	printf("Mouse event: ");
-
-	switch (mer.dwEventFlags)
-	{
-	case 0:
-		if (mer.dwButtonState == FROM_LEFT_1ST_BUTTON_PRESSED)
-		{
-			printf("left button press %d %d\n", mer.dwMousePosition.X, mer.dwMousePosition.Y);
-			pos.x = mer.dwMousePosition.X;
-			pos.y = mer.dwMousePosition.Y;
-		}
-		else if (mer.dwButtonState == RIGHTMOST_BUTTON_PRESSED)
-		{
-			printf("right button press \n");
-			pos.x = -1 * mer.dwMousePosition.X;
-			pos.y = -1 * mer.dwMousePosition.Y;
-		}
-		break;
-	}
-
-	Borland::gotoxy(0, 0);
-	return pos;
-}

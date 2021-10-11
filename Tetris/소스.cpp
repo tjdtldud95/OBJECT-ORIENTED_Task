@@ -9,13 +9,13 @@
 class Screen;
 class Block;
 class Input;
-class GameObject;
+class BlockManager;
 
 class Screen {
 private:
 	int		width; // visible width
 	int		height;
-	char** canvas;
+	char**  canvas;
 
 	// constructor (생성자 함수) 메모리공간상에 적재되는 순간 호출되는
 	Screen(int width = 10, int height = 10)
@@ -54,7 +54,7 @@ public:
 	static Screen* getInstance()
 	{
 		if (instance == nullptr)
-			instance = new Screen(10,10);
+			instance = new Screen(10,20);
 
 		return instance;
 	}
@@ -100,6 +100,21 @@ public:
 	void draw(const Position& pos,const char faceblocknum)
 	{
 		canvas[pos.y][pos.x] = faceblocknum;
+	}
+
+	bool isEmpty(const int x,const int y)
+	{
+		for (int i = -1;i < 2;i++)
+		{
+			for (int j = -1;j < 2;j++)
+			{
+				if (canvas[y + i][x + j] == 127)continue;
+
+				if (canvas[y + i][x + j] != ' ') return false;
+			}
+		}
+
+		return true;
 	}
 };
 
@@ -169,7 +184,7 @@ public:
 		}
 		if (cNumRead == 0) return;
 
-		Borland::gotoxy(0, 14);
+		Borland::gotoxy(0, 22);
 		printf("number of inputs %d\n", cNumRead);
 
 		if (!ReadConsoleInput(
@@ -204,7 +219,7 @@ public:
 		pos.y = 2;
 	}
 
-	virtual void draw()
+	void draw()
 	{
 		for (int i = -1;i <= 1;i++)
 		{
@@ -218,7 +233,7 @@ public:
 		}
 	}
 
-	virtual void update()
+	void update()
 	{
 		if (input->getKey(VK_LEFT)) {
 			if (pos.x <= 2) return;
@@ -232,8 +247,32 @@ public:
 		{
 			this->rotateLeftBlockface();
 		}
+
+		//one by one
+		bool touched = screen->isEmpty(pos.x,pos.y+1);
+		if (touched)
+			pos.y++;
+		
+		if (pos.y == 17)
+		{
+			this->setBlockface('X');
+		}
+			
 	}
-	void set_Blockface(char blockface[][3])
+
+	void setBlockface(char blockface)
+	{
+		for (int i = 0;i < 3;i++)
+		{
+			for (int j = 0;j < 3;j++)
+			{
+				if(face[i][j] == 127)
+					face[i][j] = blockface;
+			}
+		}
+	}
+
+	void setBlockface(char blockface[][3])
 	{
 		for (int i = 0;i < 3;i++)
 		{
@@ -266,15 +305,14 @@ public:
 			}
 		}
 		
-		this->set_Blockface(tmp);
+		this->setBlockface(tmp);
 	}
+
+	
 };
 
-class GameObject
+class BlockManager
 {
-private :
-
-public :
 
 };
 
@@ -352,7 +390,6 @@ bool Input::getKeyUp(WORD virtualKeyCode)
 	}
 	return false;
 }
-
 
 void Input::keyEventProc(KEY_EVENT_RECORD ker)
 {

@@ -4,17 +4,19 @@
 #include<Windows.h>
 #include<conio.h>
 #include<string>
+#include<vector>
 #include"Utils.h"
 
 class Screen;
 class Block;
 class Input;
-class BlockManager;
+class GameManager;
 
 class Screen {
 private:
 	int		width; // visible width
 	int		height;
+	int     size;
 	char**  canvas;
 
 	// constructor (생성자 함수) 메모리공간상에 적재되는 순간 호출되는
@@ -29,6 +31,8 @@ private:
 		if (this->height <= 0) {
 			this->height = 10;
 		}
+
+		size = (this->width + 1) * this->height;
 
 		canvas = (char**)malloc(sizeof(char*) * height);
 		for (int i = 0;i < height;i++)
@@ -57,6 +61,11 @@ public:
 			instance = new Screen(10,20);
 
 		return instance;
+	}
+
+	int getSize()
+	{
+		return size;
 	}
 
 	int getWidth()
@@ -201,26 +210,68 @@ public:
 	bool getKeyUp(WORD virtualKeyCode);
 };
 
+class GameManager
+{
+private:
+	Screen* screen;	
+	Position* blockPos;
+	int key;
+
+public:
+	GameManager() : screen(Screen::getInstance())
+	{
+		blockPos = (Position*)malloc(sizeof(Position) * screen->getSize());
+		key = 0;
+	}
+
+	~GameManager()
+	{
+		free(blockPos);
+		key = -1;
+	}
+
+	void positioned(const Position& pos)
+	{
+		blockPos[key] = pos;
+		key++;
+	}
+
+	void draw()
+	{
+		for (int i = 0;i < key;i++)
+		{
+			screen->draw(blockPos[i], 'X');
+		}
+	}
+};
+
 class Block 
 {
 private:
 	Position   pos;
+	bool destroy;
 	Input*     input;
 	Screen*    screen;
+	GameManager* gameManager;
 
 	char face[3][3] = { 127 ,127,127,
 						 ' ' ,' ',127,
 						 ' ' ,' ',127 };
+	int faceblocksize = 5;
 
 public:
-	Block() : input (Input::GetInstance() ) , screen(Screen :: getInstance())
+	Block(GameManager& Manager) : input (Input::GetInstance() ) , screen(Screen :: getInstance()) ,gameManager(&Manager)
 	{
+		destroy = false;
 		pos.x = 5;
 		pos.y = 2;
 	}
 
 	void draw()
 	{
+		if (destroy)
+			return;
+
 		for (int i = -1;i <= 1;i++)
 		{
 			for (int j = -1;j <= 1;j++)
@@ -228,13 +279,17 @@ public:
 				Position drawpos = this->getPos();
 				drawpos.y -= i;
 				drawpos.x -= j;
-				screen->draw(drawpos, getBlockfacenum(i + 1, j + 1));
+				screen->draw(drawpos, getBlockface(i + 1, j + 1));
 			}
 		}
 	}
 
 	void update()
 	{
+		if (destroy)
+			return;
+
+
 		if (input->getKey(VK_LEFT)) {
 			if (pos.x <= 2) return;
 			pos.x = (pos.x - 1) % (screen->getWidth());
@@ -248,7 +303,7 @@ public:
 			this->rotateLeftBlockface();
 		}
 
-		//one by one
+		//check touch something by block move 
 		bool touched = screen->isEmpty(pos.x,pos.y+1);
 		if (touched)
 			pos.y++;
@@ -256,6 +311,21 @@ public:
 		if (pos.y == 17)
 		{
 			this->setBlockface('X');
+			for (int i = -1;i <= 1;i++)
+			{
+				for (int j = -1;j <= 1;j++)
+				{
+					Position positonedpos = this->getPos();
+					positonedpos.y -= i;
+					positonedpos.x -= j;
+					if (getBlockface(i + 1, j + 1) == 'X')
+					{
+						gameManager->positioned(positonedpos);
+					}
+					
+				}
+			}
+			destroy = true;
 		}
 			
 	}
@@ -283,7 +353,7 @@ public:
 		}
 	}
 
-	char getBlockfacenum(int hei,int wid)
+	char getBlockface(int hei,int wid)
 	{
 		return face[hei][wid];
 	}
@@ -308,13 +378,8 @@ public:
 		this->setBlockface(tmp);
 	}
 
-	
 };
 
-class BlockManager
-{
-
-};
 
 Screen* Screen::instance = nullptr;
 Input* Input::Instance = nullptr;
@@ -322,12 +387,15 @@ Input* Input::Instance = nullptr;
 int main()
 {
 	Screen *screen = Screen::getInstance();
-	Block *b = new Block();
+	GameManager* gm = new GameManager();
+	Block *b = new Block(*gm);
 	Input* input = Input::GetInstance();
 
 	while (1)
 	{
 		screen->clear();
+		
+		gm->draw();
 		b->draw();
 
 		input->readInputs();

@@ -131,6 +131,7 @@ public:
 		
 		return true;
 	}
+
 };
 Screen* Screen::instance = nullptr;
 class Input {
@@ -200,7 +201,7 @@ public:
 		if (cNumRead == 0) return;
 
 		Borland::gotoxy(0, 22);
-		printf("number of inputs %d\n", cNumRead);
+		
 
 		if (!ReadConsoleInput(
 			hStdin,      // input buffer handle
@@ -260,6 +261,38 @@ public:
 			screen->draw(blockPos[i], 'X');
 		}
 	}
+
+	bool isEmptyForSpace(const Position mainpos, const Position pos[], int size)
+	{
+		bool value = true;
+		Position tmp[9];
+		int k = 0;
+		for (int i = -1;i <= 1;i++)
+		{
+			for (int j = -1;j <= 1;j++)
+			{
+				tmp[k].x=mainpos.x - j;
+				tmp[k].y=mainpos.y - i;
+				k++;
+			}
+		}
+
+
+		for (int i = 0;i < k;i++)
+		{
+			for (int j = 0;j < size;j++)
+			{
+				for (int r = 0;r < key;r++)
+				{
+					if (tmp[i].x == blockPos[r].x && tmp[i].y == blockPos[r].y)
+						value = false;
+				}
+			}
+		}
+
+
+		return value;
+	}
 };
 GameManager* GameManager::instance = nullptr;
 class Block 
@@ -318,27 +351,30 @@ public:
 			}
 		}
 	}
-
-	void setBlockface(const Position pos[],int size,char shape)
+	void setBlockface(const Position pos[],const int size,char shape)
 	{
 		this->blockpos = (Position*)malloc(sizeof(Position) * size);
-		faceblocksize = size;
+		this->faceblocksize = size;
 		for (int i = 0;i < size;i++)
 		{
 			blockpos[i] = pos[i];
 			this->face[pos[i].y][pos[i].x] = shape;
 		}
 	}
-
 	char getBlockface(int hei,int wid)
 	{
 		return face[hei][wid];
 	}
 
+	Position* getBlockPos()
+	{
+		return blockpos;
+	}
 	Position getBlockPos(int num)
 	{
 		return blockpos[num];
 	}
+
 	Position getPos()
 	{
 		return this->mainPos;
@@ -398,16 +434,16 @@ class BlockManager
 		//¤¡, ¤±, ¤Ó, ¤© , ¤©¹Ý´ë
 		Atype=0,
 		Btype,
-		Ctype,
-		Dtype,
-		Etype
+	//	Ctype,
+	//	Dtype,
+	//	Etype
 	};
 
 	const Position Atype[5] = {Position(0,0), Position(1,0),Position(2,0), Position(2,1),Position(2,2) };
 	const Position Btype[4] = {Position(0,0), Position(1,0),Position(0,1),Position(1,1)}; 
-	const Position Ctype[3] = { Position(0,1),Position(1,1),Position(2,1) };
-	const Position Dtype[4] = { Position(1,1),Position(1,2),Position(2,0),Position(2,1) };
-	const Position Etype[4] = { Position(1,0),Position(1,1),Position(2,1),Position(2,2) };
+	//const Position Ctype[3] = { Position(0,1),Position(1,1),Position(2,1) };
+	//const Position Dtype[4] = { Position(1,1),Position(1,2),Position(2,0),Position(2,1) };
+	//const Position Etype[4] = { Position(1,0),Position(1,1),Position(2,1),Position(2,2) };
 
 	Block* blocks;
 	GameManager* gameManager;
@@ -424,16 +460,16 @@ public :
 		blocks = new Block[3];
 		for (int i = 0;i < 3;i++)
 		{
-			BlockFaces type = BlockFaces(rand() % 5);
+			BlockFaces type = BlockFaces(rand() % 1);
 			switch (type)
 			{
 			case BlockManager::BlockFaces::Atype:
 				blocks[i].setBlockface(Atype, 5, 127);
 				break;
-			case BlockManager::BlockFaces::Btype:
-				blocks[i].setBlockface(Btype, 4, 127);
+				case BlockManager::BlockFaces::Btype:
+				/*blocks[i].setBlockface(Btype, 4, 127);
 				break;
-			case BlockManager::BlockFaces::Ctype:
+				case BlockManager::BlockFaces::Ctype:
 				blocks[i].setBlockface(Ctype, 3, 127);
 				break;
 			case BlockManager::BlockFaces::Dtype:
@@ -441,7 +477,7 @@ public :
 				break;
 			case BlockManager::BlockFaces::Etype:
 				blocks[i].setBlockface(Etype, 4, 127);
-				break;
+				break;*/
 			default:
 				break;
 			}
@@ -460,7 +496,7 @@ public :
 		Block* b = new Block();
 		blocks[num] = *b;
 
-		BlockFaces type = BlockFaces(rand() % 5);
+		BlockFaces type = BlockFaces(rand() % 1);
 		switch (type)
 		{
 		case BlockManager::BlockFaces::Atype:
@@ -469,7 +505,7 @@ public :
 		case BlockManager::BlockFaces::Btype:
 			blocks[num].setBlockface(Btype, 4, 127);
 			break;
-		case BlockManager::BlockFaces::Ctype:
+		/*case BlockManager::BlockFaces::Ctype:
 			blocks[num].setBlockface(Ctype, 3, 127);
 			break;
 		case BlockManager::BlockFaces::Dtype:
@@ -477,17 +513,15 @@ public :
 			break;
 		case BlockManager::BlockFaces::Etype:
 			blocks[num].setBlockface(Etype, 4, 127);
-			break;
+			break;*/
 		default:
 			break;
 		}
 
 	}
 	
-
 	void draw()
 	{
-
 		for (int i = -1;i <= 1;i++)
 		{
 			for (int j = -1;j <= 1;j++)
@@ -512,8 +546,6 @@ public :
 				key = 0;
 			return;
 		}
-			
-
 		if (input->getKey(VK_LEFT))
 		{
 			bool isLeftBlock = false;
@@ -568,32 +600,70 @@ public :
 			blocks[key].rotateLeftBlockface();
 		}
 
-		
-		//check touch something by block move 
-		bool isTouch = screen->isEmpty(blocks[key].getPos());
-		
-		if (isTouch)
-			blocks[key].BlockMove('D');
-
-		else
+		if (input->getKey(VK_DOWN))
 		{
+			//check touch something by block move 
+			bool isTouch = screen->isEmpty(blocks[key].getPos());
+
+			if (isTouch)
+				blocks[key].BlockMove('D');
+
+			else
+			{
+				blocks[key].setBlockface('X');
+				for (int i = -1;i <= 1;i++)
+				{
+					for (int j = -1;j <= 1;j++)
+					{
+						Position pos = blocks[key].getPos();
+						pos.y -= i;
+						pos.x -= j;
+						if (blocks[key].getBlockface(i + 1, j + 1) == 'X')
+						{
+							gameManager->positioned(pos);
+						}
+
+					}
+				}
+				blocks[key].setDestoy(true);
+			}
+		}
+
+		if (input->getKey(VK_SPACE))
+		{
+			bool isTouch = false;
+			Position pos(blocks[key].getPos().x, 17);
+
+			while (1)
+			{
+				isTouch = gameManager->isEmptyForSpace(pos, blocks[key].getBlockPos(), blocks[key].getFaceblocksize());
+				if (isTouch)
+					break;
+				pos.y--;
+			}
+			
+			blocks[key].setPos(pos);
 			blocks[key].setBlockface('X');
 			for (int i = -1;i <= 1;i++)
 			{
 				for (int j = -1;j <= 1;j++)
 				{
 					Position positonedpos = blocks[key].getPos();
-					positonedpos.y -= i;
-					positonedpos.x -= j;
 					if (blocks[key].getBlockface(i + 1, j + 1) == 'X')
 					{
+						positonedpos.y -= i;
+						positonedpos.x -= j;
 						gameManager->positioned(positonedpos);
 					}
 
 				}
 			}
 			blocks[key].setDestoy(true);
+			
+
+	
 		}
+		
 	}
 };
 
@@ -615,10 +685,9 @@ int main()
 		input->readInputs();
 
 		b.update();
-		
 
 		screen->render();	
-		Sleep(250);
+		Sleep(100);
 	}
 
 	return 0;

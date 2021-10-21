@@ -18,7 +18,7 @@ private:
 	int		width; // visible width
 	int		height;
 	int     size;
-	char**  canvas;
+	char** canvas;
 
 	// constructor (생성자 함수) 메모리공간상에 적재되는 순간 호출되는
 	Screen(int width = 10, int height = 10)
@@ -54,12 +54,12 @@ private:
 
 
 public:
-	static Screen *instance;
+	static Screen* instance;
 
 	static Screen* getInstance()
 	{
 		if (instance == nullptr)
-			instance = new Screen(10,20);
+			instance = new Screen(10, 20);
 
 		return instance;
 	}
@@ -82,20 +82,20 @@ public:
 	{
 		for (int i = 0;i < height;i++)
 		{
-			memset(canvas[i], ' ', width+1);
+			memset(canvas[i], ' ', width + 1);
 			canvas[i][0] = 5;
-			canvas[i][width+1] = 5;
-			canvas[i][width+2] = '\0';
+			canvas[i][width + 1] = 5;
+			canvas[i][width + 2] = '\0';
 			if (i == 0 || i == height - 1)
 			{
-				memset(canvas[i], 6, width+1);
+				memset(canvas[i], 6, width + 1);
 			}
 		}
 
 		canvas[0][0] = 1;
-		canvas[0][width+1] = 2;
+		canvas[0][width + 1] = 2;
 		canvas[height - 1][0] = 3;
-		canvas[height - 1][width+1] = 4;
+		canvas[height - 1][width + 1] = 4;
 	}
 
 	void render()
@@ -107,29 +107,9 @@ public:
 		}
 	}
 
-	void draw(const Position& pos,const char faceblocknum)
+	void draw(const Position& pos, const char faceblocknum)
 	{
 		canvas[pos.y][pos.x] = faceblocknum;
-	}
-
-	bool isEmpty(const Position & pos)
-	{
-		for (int i = -1;i < 2;i++)
-		{
-			for (int j = -1;j < 2;j++)
-			{
-				if (canvas[pos.y + i][pos.x + j] == 127)
-				{
-					if (canvas[pos.y + i + 1][pos.x + j] == 127)
-						continue;
-
-					if (canvas[pos.y + i + 1][pos.x + j] != ' ')
-						return false;
-				}
-			}
-		}
-		
-		return true;
 	}
 
 };
@@ -201,7 +181,7 @@ public:
 		if (cNumRead == 0) return;
 
 		Borland::gotoxy(0, 22);
-		
+
 
 		if (!ReadConsoleInput(
 			hStdin,      // input buffer handle
@@ -220,20 +200,26 @@ Input* Input::Instance = nullptr;
 class GameManager
 {
 private:
-	Screen* screen;	
-	Position* blockPos;
-	int key;
+	Screen* screen;
+	int** map;
 
 	GameManager() : screen(Screen::getInstance())
 	{
-		blockPos = (Position*)malloc(sizeof(Position) * screen->getSize());
-		key = 0;
+		map = (int**)malloc(sizeof(int*) * screen->getHeigt()-2);
+		for (int i = 0;i < screen->getHeigt();i++)
+		{
+			map[i] = (int*)malloc(sizeof(int) * screen->getWidth());
+			memset(map[i], 0, screen->getWidth()-1);
+		}
+	
 	}
 
 	~GameManager()
 	{
-		free(blockPos);
-		key = -1;
+		for (int i = 0;i < screen->getHeigt();i++)
+		{
+			free(map[i]);
+		}
 	}
 
 public:
@@ -248,64 +234,48 @@ public:
 	}
 
 
-	void positioned(const Position& pos)
+	void positionMap(const Position& pos)
 	{
-		blockPos[key] = pos;
-		key++;
+		map[pos.y][pos.x] = 1;
 	}
 
 	void draw()
 	{
-		for (int i = 0;i < key;i++)
+		for (int i = 0;i < screen->getHeigt() - 1;i++)
 		{
-			screen->draw(blockPos[i], 'X');
-		}
-	}
-
-	bool isEmptyForSpace(const Position mainpos, const Position pos[], int size)
-	{
-		bool value = true;
-		Position tmp[9];
-		int k = 0;
-		for (int i = -1;i <= 1;i++)
-		{
-			for (int j = -1;j <= 1;j++)
+			for (int j = 0;j < screen->getWidth()+1;j++)
 			{
-				tmp[k].x=mainpos.x - j;
-				tmp[k].y=mainpos.y - i;
-				k++;
-			}
-		}
-
-
-		for (int i = 0;i < k;i++)
-		{
-			for (int j = 0;j < size;j++)
-			{
-				for (int r = 0;r < key;r++)
+				if (map[i][j] == 1)
 				{
-					if (tmp[i].x == blockPos[r].x && tmp[i].y == blockPos[r].y)
-						value = false;
+					screen->draw(Position(j, i), '#');
 				}
 			}
 		}
-
-
-		return value;
 	}
+
+	bool IsEmpty(const Position pos)
+	{
+		if (map[pos.y][pos.x] == 1) 
+			return false;
+
+		return true;
+	}
+
 };
 GameManager* GameManager::instance = nullptr;
-class Block 
+class Block
 {
 private:
-	Position*   blockpos;
+	Position blockpos[9];
 	Position   mainPos;
 	bool destroy;
+	bool isLeftBlock;
+	bool isRightBlock;
 	char face[3][3];
-	int faceblocksize;
+	int faceblocklength;
 
 public:
-	Block() 
+	Block()
 	{
 		destroy = false;
 		mainPos.x = 5;
@@ -317,77 +287,51 @@ public:
 	}
 	~Block()
 	{
-		free(blockpos);
 		mainPos = NULL;
+	}
+	
+	void setBlockface(const Position& pos,char shape)
+	{
+		face[pos.y][pos.x] = shape;
+	}
 
+	void setBlockface(const Position arr[],int len,char shape)
+	{
+		faceblocklength = len;
+		for (int i = 0;i < len;i++)
+		{
+			blockpos[i] = arr[i];
+			face[arr[i].y][arr[i].x] = shape;
+		}
+		
 	}
 
 	void BlockMove(const char& keyCode) // R : Right   L:left   D : down
 	{
 		if (keyCode == 'L')
+		
 			this->mainPos.x--;
-
+		
+			
 		else if (keyCode == 'R')
 			this->mainPos.x++;
+		
 
 		else if (keyCode == 'D')
 			this->mainPos.y++;
-	}
-
-	void setBlockface(char blockface)
-	{
-		for (int i = 0;i < faceblocksize;i++)
-		{
-			this->face[blockpos[i].y][blockpos[i].x] = blockface;
-		}
-	}
-	void setBlockface(char blockface[][3])
-	{
-		for (int i = 0;i < 3;i++)
-		{
-			for (int j = 0;j < 3;j++)
-			{
-				face[i][j] = blockface[i][j];
-			}
-		}
-	}
-	void setBlockface(const Position pos[],const int size,char shape)
-	{
-		this->blockpos = (Position*)malloc(sizeof(Position) * size);
-		this->faceblocksize = size;
-		for (int i = 0;i < size;i++)
-		{
-			blockpos[i] = pos[i];
-			this->face[pos[i].y][pos[i].x] = shape;
-		}
-	}
-	char getBlockface(int hei,int wid)
-	{
-		return face[hei][wid];
-	}
-
-	Position* getBlockPos()
-	{
-		return blockpos;
-	}
-	Position getBlockPos(int num)
-	{
-		return blockpos[num];
-	}
-
-	Position getPos()
-	{
-		return this->mainPos;
-	}
-	void setPos(const Position& pos)
-	{
-		this->mainPos = pos;
 	}
 
 	void rotateLeftBlockface()
 	{
 		char tmp[3][3];
 		int index = 0;
+
+		if (mainPos.x >= 9)
+			mainPos.x--;
+		if (mainPos.x <= 1)
+			mainPos.x++;
+
+
 		for (int i = 0;i < 3;i++)
 		{
 			for (int j = 0;j < 3;j++)
@@ -400,30 +344,61 @@ public:
 		{
 			for (int j = 0;j < 3;j++)
 			{
-				if (tmp[i][j] == 127)
+				this->face[i][j] = tmp[i][j];
+			}
+		}
+		
+		for (int i = 0;i < 3;i++)
+		{
+			for (int j = 0;j < 3;j++)
+			{
+				if (face[i][j] == 'O')
 				{
-					blockpos[index] = Position(j, i);
+					this->blockpos[index] = Position(i, j);
 					index++;
 				}
 			}
 		}
 
-		this->setBlockface(tmp);
 	}
 
-
-	int getFaceblocksize()
+	Position getMainPos()
 	{
-		return faceblocksize;
+		return mainPos;
+	}
+
+	Position getBlockPos(int num)
+	{
+		return blockpos[num];
+	}
+
+	char getBlockface()
+	{
+		for (int i = 0;i < 3;i++)
+		{
+			for (int j = 0;j < 3;j++)
+			{
+				if (face[i][j] != ' ')
+				{
+					return this->face[i][j];
+				}
+			}
+		}
+	}
+
+	int getBlockPosLength()
+	{
+		return faceblocklength;
+	}
+
+	void setDestoy(bool value)
+	{
+		destroy = value;
 	}
 
 	bool getDestoy()
 	{
 		return destroy;
-	}
-	void setDestoy(const bool& destroy)
-	{
-		this->destroy = destroy;
 	}
 };
 
@@ -432,18 +407,18 @@ class BlockManager
 	enum class BlockFaces
 	{
 		//ㄱ, ㅁ, ㅣ, ㄹ , ㄹ반대
-		Atype=0,
+		Atype = 0,
 		Btype,
-	//	Ctype,
-	//	Dtype,
-	//	Etype
+		Ctype,
+		Dtype,
+		Etype
 	};
 
-	const Position Atype[5] = {Position(0,0), Position(1,0),Position(2,0), Position(2,1),Position(2,2) };
-	const Position Btype[4] = {Position(0,0), Position(1,0),Position(0,1),Position(1,1)}; 
-	//const Position Ctype[3] = { Position(0,1),Position(1,1),Position(2,1) };
-	//const Position Dtype[4] = { Position(1,1),Position(1,2),Position(2,0),Position(2,1) };
-	//const Position Etype[4] = { Position(1,0),Position(1,1),Position(2,1),Position(2,2) };
+	const Position Atype[5] = { Position(0,0), Position(1,0),Position(2,0), Position(2,1),Position(2,2) };
+	const Position Btype[4] = { Position(0,0), Position(1,0),Position(0,1),Position(1,1) };
+	const Position Ctype[3] = { Position(0,1),Position(1,1),Position(2,1) };
+	const Position Dtype[4] = { Position(0,2),Position(0,1),Position(1,1),Position(1,0) };
+	const Position Etype[4] = { Position(0,0),Position(0,1),Position(1,1),Position(1,2) };
 
 	Block* blocks;
 	GameManager* gameManager;
@@ -451,8 +426,8 @@ class BlockManager
 	Screen* screen;
 	int key;
 
-public :
-	BlockManager() : gameManager(GameManager::getInstance()) , input(Input::GetInstance()),screen(Screen:: getInstance())
+public:
+	BlockManager() : gameManager(GameManager::getInstance()), input(Input::GetInstance()), screen(Screen::getInstance())
 	{
 		key = 0;
 		srand(time(nullptr));
@@ -460,29 +435,29 @@ public :
 		blocks = new Block[3];
 		for (int i = 0;i < 3;i++)
 		{
-			BlockFaces type = BlockFaces(rand() % 1);
+			BlockFaces type = BlockFaces(rand() % 5);
 			switch (type)
 			{
 			case BlockManager::BlockFaces::Atype:
-				blocks[i].setBlockface(Atype, 5, 127);
+				blocks[i].setBlockface(Atype, 5, 'O');
 				break;
-				case BlockManager::BlockFaces::Btype:
-				/*blocks[i].setBlockface(Btype, 4, 127);
+			case BlockManager::BlockFaces::Btype:
+				blocks[i].setBlockface(Btype, 4, 'O');
 				break;
-				case BlockManager::BlockFaces::Ctype:
-				blocks[i].setBlockface(Ctype, 3, 127);
+			case BlockManager::BlockFaces::Ctype:
+				blocks[i].setBlockface(Ctype, 3, 'O');
 				break;
 			case BlockManager::BlockFaces::Dtype:
-				blocks[i].setBlockface(Dtype, 4, 127);
+				blocks[i].setBlockface(Dtype, 4, 'O');
 				break;
 			case BlockManager::BlockFaces::Etype:
-				blocks[i].setBlockface(Etype, 4, 127);
-				break;*/
+				blocks[i].setBlockface(Etype, 4, 'O');
+				break;
 			default:
 				break;
 			}
 		}
-		
+
 	}
 
 	~BlockManager()
@@ -490,50 +465,47 @@ public :
 		free(blocks);
 	}
 
-	
+
 	void resetBlocks(int num)
 	{
 		Block* b = new Block();
 		blocks[num] = *b;
 
-		BlockFaces type = BlockFaces(rand() % 1);
+		BlockFaces type = BlockFaces(rand() % 5);
 		switch (type)
 		{
 		case BlockManager::BlockFaces::Atype:
-			blocks[num].setBlockface(Atype, 5, 127);
+			blocks[num].setBlockface(Atype, 5, 'O');
 			break;
 		case BlockManager::BlockFaces::Btype:
-			blocks[num].setBlockface(Btype, 4, 127);
+			blocks[num].setBlockface(Btype, 4, 'O');
 			break;
-		/*case BlockManager::BlockFaces::Ctype:
-			blocks[num].setBlockface(Ctype, 3, 127);
+		case BlockManager::BlockFaces::Ctype:
+			blocks[num].setBlockface(Ctype, 3, 'O');
 			break;
 		case BlockManager::BlockFaces::Dtype:
-			blocks[num].setBlockface(Dtype, 4, 127);
+			blocks[num].setBlockface(Dtype, 4, 'O');
 			break;
 		case BlockManager::BlockFaces::Etype:
-			blocks[num].setBlockface(Etype, 4, 127);
-			break;*/
+			blocks[num].setBlockface(Etype, 4, 'O');
+			break;
 		default:
 			break;
 		}
 
 	}
-	
+
 	void draw()
 	{
-		for (int i = -1;i <= 1;i++)
-		{
-			for (int j = -1;j <= 1;j++)
-			{
-				Position drawpos = blocks[key].getPos();
-				drawpos.y -= i;
-				drawpos.x -= j;
-				if(blocks[key].getBlockface(i + 1, j + 1) == 127)
-					screen->draw(drawpos, blocks[key].getBlockface(i + 1, j + 1));
-			}
-		}
+		int len = blocks[key].getBlockPosLength();
 
+		for (int i = 0;i < len;i++)
+		{
+			Position drawpos = blocks[key].getMainPos();
+			drawpos.x += blocks[key].getBlockPos(i).x;
+			drawpos.y += blocks[key].getBlockPos(i).y;	
+			screen->draw(drawpos, blocks[key].getBlockface());
+		}
 	}
 
 	void update()
@@ -546,52 +518,47 @@ public :
 				key = 0;
 			return;
 		}
+		int len = blocks[key].getBlockPosLength();
 		if (input->getKey(VK_LEFT))
 		{
-			bool isLeftBlock = false;
-			for (int i = 0;i < 3;i++)
+			for (int i = 0;i < len;i++)
 			{
-				if (blocks[key].getBlockface(i, 0) != ' ')
-				{
-					isLeftBlock = true;
-					break;
-				}
+				Position currentPos = blocks[key].getMainPos();
+				Position pos = blocks[key].getBlockPos(i);
+				currentPos.x += pos.x;
+
+				if (currentPos.x <= 1)
+					return;
+
+				currentPos.x--;
+				currentPos.y += pos.y;
+
+				bool canmove = gameManager->IsEmpty(currentPos);
+
+				if (!canmove) return;
 			}
-		 
-			if (isLeftBlock)
-			{
-				if (blocks[key].getPos().x <= 2) return;
-			}
-			
-			else
-			{
-				if (blocks[key].getPos().x <= 1) return;
-			}
-				
+
 			blocks[key].BlockMove('L');
+
 		}
 		if (input->getKey(VK_RIGHT))
 		{
-			bool isRightBlock = false;
-			for (int i = 0;i < 3;i++)
+			for (int i = 0;i < len;i++)
 			{
-				if (blocks[key].getBlockface(i, 2) != ' ')
-				{
-					isRightBlock = true;
-					break;
-				}
-			}
+				Position currentPos = blocks[key].getMainPos();
+				Position pos = blocks[key].getBlockPos(i);
+				currentPos.x += pos.x;
 
-			if (isRightBlock)
-			{
-				if (blocks[key].getPos().x >= (screen->getWidth()-1)) return;
-			}
+				if (currentPos.x >= 10)
+					return;
 
-			else
-			{
-				if (blocks[key].getPos().x >= (screen->getWidth())) return;
-			}
+				currentPos.x++;
+				currentPos.y += pos.y;
+				bool canmove = gameManager->IsEmpty(currentPos);
 
+				if (!canmove) return;
+
+			}
 			blocks[key].BlockMove('R');
 		}
 
@@ -600,85 +567,63 @@ public :
 			blocks[key].rotateLeftBlockface();
 		}
 
+		
 		if (input->getKey(VK_DOWN))
 		{
 			//check touch something by block move 
-			bool isTouch = screen->isEmpty(blocks[key].getPos());
+			bool canmove = false;
+			for (int i = 0;i < len;i++)
+			{
+				Position pos = blocks[key].getBlockPos(i);
+				Position currentPos = blocks[key].getMainPos();
+				currentPos.x += pos.x;
+				currentPos.y += pos.y;
+				currentPos.y++;
+				canmove = gameManager->IsEmpty(currentPos);
 
-			if (isTouch)
+				if (!canmove) break;
+				if (currentPos.y >= 19)
+				{
+					canmove = false;
+					break;
+				}
+			}
+
+			if(canmove)
 				blocks[key].BlockMove('D');
 
 			else
 			{
-				blocks[key].setBlockface('X');
-				for (int i = -1;i <= 1;i++)
+				for (int i = 0;i < len;i++)
 				{
-					for (int j = -1;j <= 1;j++)
-					{
-						Position pos = blocks[key].getPos();
-						pos.y -= i;
-						pos.x -= j;
-						if (blocks[key].getBlockface(i + 1, j + 1) == 'X')
-						{
-							gameManager->positioned(pos);
-						}
+					Position pos = blocks[key].getBlockPos(i);
+					Position mainPos = blocks[key].getMainPos();
+					mainPos.x += pos.x;
+					mainPos.y += pos.y;
 
-					}
+					blocks[key].setBlockface(pos, 'X');
+					gameManager->positionMap(mainPos);
 				}
 				blocks[key].setDestoy(true);
 			}
 		}
-
-		if (input->getKey(VK_SPACE))
-		{
-			bool isTouch = false;
-			Position pos(blocks[key].getPos().x, 17);
-
-			while (1)
-			{
-				isTouch = gameManager->isEmptyForSpace(pos, blocks[key].getBlockPos(), blocks[key].getFaceblocksize());
-				if (isTouch)
-					break;
-				pos.y--;
-			}
-			
-			blocks[key].setPos(pos);
-			blocks[key].setBlockface('X');
-			for (int i = -1;i <= 1;i++)
-			{
-				for (int j = -1;j <= 1;j++)
-				{
-					Position positonedpos = blocks[key].getPos();
-					if (blocks[key].getBlockface(i + 1, j + 1) == 'X')
-					{
-						positonedpos.y -= i;
-						positonedpos.x -= j;
-						gameManager->positioned(positonedpos);
-					}
-
-				}
-			}
-			blocks[key].setDestoy(true);
-			
-
-	
-		}
 		
 	}
+	
 };
 
 
 int main()
 {
-	Screen *screen = Screen::getInstance();
-	GameManager* gm = GameManager :: getInstance();
+	Screen* screen = Screen::getInstance();
+	GameManager* gm = GameManager::getInstance();
 	Input* input = Input::GetInstance();
 	BlockManager b;
 
 	while (1)
 	{
 		screen->clear();
-		
+
 		gm->draw();
 		b.draw();
 
@@ -686,7 +631,7 @@ int main()
 
 		b.update();
 
-		screen->render();	
+		screen->render();
 		Sleep(100);
 	}
 

@@ -201,14 +201,14 @@ class GameManager
 {
 private:
 	Screen* screen;
-	int** map;
+	char** map;
 
 	GameManager() : screen(Screen::getInstance())
 	{
-		map = (int**)malloc(sizeof(int*) * screen->getHeigt()-2);
+		map = (char**)malloc(sizeof(char*) * screen->getHeigt()-2);
 		for (int i = 0;i < screen->getHeigt();i++)
 		{
-			map[i] = (int*)malloc(sizeof(int) * screen->getWidth());
+			map[i] = (char*)malloc(sizeof(char) * screen->getWidth());
 			memset(map[i], 0, screen->getWidth()-1);
 		}
 	
@@ -239,6 +239,26 @@ public:
 		map[pos.y][pos.x] = 1;
 	}
 
+	bool IsEmpty(const Position pos)
+	{
+		if (map[pos.y][pos.x] == 1)
+			return false;
+
+		return true;
+	}
+
+	bool isFull(int num)
+	{
+		int size = 0;
+		for (int i = 0;i < screen->getWidth() + 1;i++)
+		{
+			if (map[num][i] == 1)
+				size++;
+		}
+
+		return size == 10;
+	}
+
 	void draw()
 	{
 		for (int i = 0;i < screen->getHeigt() - 1;i++)
@@ -247,18 +267,41 @@ public:
 			{
 				if (map[i][j] == 1)
 				{
-					screen->draw(Position(j, i), '#');
+					screen->draw(Position(j, i), 'X');
 				}
 			}
 		}
 	}
 
-	bool IsEmpty(const Position pos)
+	void update()
 	{
-		if (map[pos.y][pos.x] == 1) 
-			return false;
+		int i;
+		bool isfull = false;
+		for (i = 0;i < screen->getHeigt() - 1;i++)
+		{
+			isfull=isFull(i);
+			if (isfull)
+				break;
+		}
 
-		return true;
+		if (isfull) // not yet
+		{
+			for (int j = 1;j < screen->getWidth() + 1;j++)
+			{
+				map[i][j] = 2;
+				screen->draw(Position(j, i), '+');
+			}
+
+			char tmp[20] = { 0 };
+			Borland::gotoxy(0, 20);
+			for(int j = i; j > 1;j--)
+			{
+				printf("%d ", j);
+				strcpy(tmp, map[j]);
+				strcpy(map[j], map[j - 1]);
+				strcpy(map[j - 1], tmp);
+			}
+		}
 	}
 
 };
@@ -319,6 +362,7 @@ public:
 
 		else if (keyCode == 'D')
 			this->mainPos.y++;
+
 	}
 
 	void rotateLeftBlockface()
@@ -365,6 +409,12 @@ public:
 	Position getMainPos()
 	{
 		return mainPos;
+	}
+
+	void setMainPos(const Position pos)
+	{
+		mainPos.x = pos.x;
+		mainPos.y = pos.y;
 	}
 
 	Position getBlockPos(int num)
@@ -435,7 +485,7 @@ public:
 		blocks = new Block[3];
 		for (int i = 0;i < 3;i++)
 		{
-			BlockFaces type = BlockFaces(rand() % 5);
+			BlockFaces type = BlockFaces(2); //rand() % 5
 			switch (type)
 			{
 			case BlockManager::BlockFaces::Atype:
@@ -471,7 +521,7 @@ public:
 		Block* b = new Block();
 		blocks[num] = *b;
 
-		BlockFaces type = BlockFaces(rand() % 5);
+		BlockFaces type = BlockFaces(2);//rand() % 5
 		switch (type)
 		{
 		case BlockManager::BlockFaces::Atype:
@@ -541,6 +591,7 @@ public:
 			blocks[key].BlockMove('L');
 
 		}
+		
 		if (input->getKey(VK_RIGHT))
 		{
 			for (int i = 0;i < len;i++)
@@ -567,7 +618,6 @@ public:
 			blocks[key].rotateLeftBlockface();
 		}
 
-		
 		if (input->getKey(VK_DOWN))
 		{
 			//check touch something by block move 
@@ -607,6 +657,50 @@ public:
 				blocks[key].setDestoy(true);
 			}
 		}
+
+		if (input->getKey(VK_SPACE))
+		{
+			int y = 0;
+			bool canmove = false;
+			while (1)
+			{
+				for (int i = 0;i < len;i++)
+				{
+					Position pos = blocks[key].getBlockPos(i);
+					Position currentPos = blocks[key].getMainPos();
+					currentPos.x += pos.x;
+					currentPos.y += pos.y;
+					currentPos.y +=y;
+					canmove = gameManager->IsEmpty(currentPos);
+
+					if (!canmove) break;
+					if (currentPos.y >= 19)
+					{
+						canmove = false;
+						break;
+					}
+				}
+				
+				if (!canmove)
+					break;
+
+				y++;
+			}
+
+			for (int i = 0;i < len;i++)
+			{
+				Position pos = blocks[key].getBlockPos(i);
+				Position mainPos = blocks[key].getMainPos();
+				mainPos.x += pos.x;
+				mainPos.y += pos.y;
+				mainPos.y += y-1;
+
+				blocks[key].setBlockface(pos, 'X');
+				gameManager->positionMap(mainPos);
+			}
+
+			blocks[key].setDestoy(true);
+		}
 		
 	}
 	
@@ -631,6 +725,7 @@ int main()
 
 		b.update();
 
+		gm->update();
 		screen->render();
 		Sleep(100);
 	}

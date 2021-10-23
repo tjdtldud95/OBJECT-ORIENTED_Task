@@ -292,14 +292,15 @@ public:
 				screen->draw(Position(j, i), '+');
 			}
 
-			char tmp[20] = { 0 };
-			Borland::gotoxy(0, 20);
+			char tmp;
 			for(int j = i; j > 1;j--)
 			{
-				printf("%d ", j);
-				strcpy(tmp, map[j]);
-				strcpy(map[j], map[j - 1]);
-				strcpy(map[j - 1], tmp);
+				for (int r = 1;r < screen->getWidth() + 1;r++)
+				{
+					tmp = map[j][r];
+					map[j][r] = map[j-1][r];
+					map[j - 1][r] = tmp;
+				}
 			}
 		}
 	}
@@ -485,7 +486,7 @@ public:
 		blocks = new Block[3];
 		for (int i = 0;i < 3;i++)
 		{
-			BlockFaces type = BlockFaces(2); //rand() % 5
+			BlockFaces type = BlockFaces(rand() % 5); //rand() % 5
 			switch (type)
 			{
 			case BlockManager::BlockFaces::Atype:
@@ -521,7 +522,7 @@ public:
 		Block* b = new Block();
 		blocks[num] = *b;
 
-		BlockFaces type = BlockFaces(2);//rand() % 5
+		BlockFaces type = BlockFaces(rand() % 5);//rand() % 5
 		switch (type)
 		{
 		case BlockManager::BlockFaces::Atype:
@@ -726,7 +727,9 @@ int main()
 		b.update();
 
 		gm->update();
+
 		screen->render();
+
 		Sleep(100);
 	}
 

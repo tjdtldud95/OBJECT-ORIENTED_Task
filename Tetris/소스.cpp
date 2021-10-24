@@ -1,73 +1,81 @@
+#ifndef _CRT_SECURE_NO_WARNINGS
 #define _CRT_SECURE_NO_WARNINGS
+#endif
 
-#include<iostream>
-#include<Windows.h>
-#include<conio.h>
-#include<string>
-#include"Utils.h"
+#include <iostream>
+#include <conio.h> // console io
+#include <cstring> // string.h
+#include <cstdlib> // stdlib.h
+#include <string> // c++ string class
+#include <Windows.h>
+#include "Utils.h"
 
+//Video Link : https://youtu.be/PhLAzSXGnGQ
+
+//Singleton 클래스
+//====================================
 class Screen;
-class UIScreen;
-class Block;
-class BlockManager;
 class Input;
-class GameManager;
-
+class MineManager;
+//=====================================
+class Mine;
 
 class Screen {
 private:
 	int		width; // visible width
 	int		height;
-	int     size;
-	char** canvas;
+	int		size;
+	char* canvas;
 
 	// constructor (생성자 함수) 메모리공간상에 적재되는 순간 호출되는
 	Screen(int width = 10, int height = 10)
-		: width(width), height(height)
+		: width(width), height(height), canvas(new char[(width + 1) * height])
 	{
-		if (this->width <= 0)
-		{
+		bool faultyInput = false;
+		if (this->width <= 0) {
 			this->width = 10;
+			faultyInput = true;
 		}
-
 		if (this->height <= 0) {
 			this->height = 10;
+			faultyInput = true;
 		}
-
 		size = (this->width + 1) * this->height;
-
-		canvas = (char**)malloc(sizeof(char*) * height);
-		for (int i = 0;i < height;i++)
-		{
-			canvas[i] = (char*)malloc(sizeof(char) * width + 1);
+		if (faultyInput == true) {
+			delete canvas;
+			canvas = new char[size];
 		}
 	}
 	// destructor (소멸자 함수) 메모리공간상에서 없어지는 순간 호출되는 함수
 	~Screen()
 	{
-		for (int i = 0;i < height;i++)
-		{
-			free(canvas[i]);
-		}
-		free(canvas);
+		delete[] canvas;
+		canvas = nullptr;
 		width = 0; height = 0;
 	}
 
-
 public:
-	static Screen* instance;
 
-	static Screen* getInstance()
+	static Screen* instance;
+	static Screen* getInstance(int width,int height)
 	{
 		if (instance == nullptr)
-			instance = new Screen(10, 20);
+			instance = new Screen(width, height);
 
 		return instance;
 	}
 
-	int getSize()
+	int get_NumEmptyCanvas()
 	{
-		return size;
+		int num=0;
+
+		for (int i = 0;i < size;i++)
+		{
+			if (canvas[i] == 127)
+				num++;
+		}
+
+		return num;
 	}
 
 	int getWidth()
@@ -81,216 +89,173 @@ public:
 
 	void clear()
 	{
-		for (int i = 0;i < height;i++)
-		{
-			memset(canvas[i], ' ', width + 1);
-			canvas[i][0] = 5;
-			canvas[i][width + 1] = 5;
-			canvas[i][width + 2] = '\0';
-			if (i == 0 || i == height - 1)
-			{
-				memset(canvas[i], 6, width + 1);
-			}
-		}
-
-		canvas[0][0] = 1;
-		canvas[0][width + 1] = 2;
-		canvas[height - 1][0] = 3;
-		canvas[height - 1][width + 1] = 4;
+		memset(canvas, 127, size);
 	}
-
+	 
 	void render()
 	{
 		Borland::gotoxy(0, 0);
-		for (int i = 0;i < height;i++)
-		{
-			printf("%s\n", canvas[i]);
-		}
+		for (int h = 0; h < height; h++)
+			canvas[(width + 1) * (h + 1) - 1] = '\n';
+		canvas[size - 1] = '\0';
+		printf("%s", canvas);
 	}
 
-	void draw(const Position& pos, const char faceblocknum)
-	{
-		canvas[pos.y][pos.x] = faceblocknum;
-	}
-
+	void draw(int x,int y ,MineManager* mines);
+	void draw(MineManager* mines);
 };
-Screen* Screen::instance = nullptr;
-class UIScreen
+class Mine
 {
 private:
-	char nextblockface[3][3];
-	int score;
-	char** canvas;
-	int wid;
-	int hei;
-
-	UIScreen(int width = 20, int height = 5) : wid(width), hei(height)
-	{
-		memset(nextblockface, ' ', sizeof(nextblockface));
-		score = 0;
-
-		canvas = (char**)malloc(sizeof(char*) * height);
-		for (int i = 0;i < height;i++)
-		{
-			canvas[i] = (char*)malloc(sizeof(char) * width + 1);
-		}
-
-	}
-	~UIScreen()
-	{
-		for (int i = 0;i < hei;i++)
-		{
-			free(canvas[i]);
-		}
-		free(canvas);
-		wid = 0; hei = 0;
-	}
+	Position pos;
 public:
-	static UIScreen* instance;
+	Mine()
+	{
+		srand(time(nullptr));			
+	}
 
-	static UIScreen* getInstance()
+	void Set_Pos_XY(int Screen_wid, int Screen_hei)
+	{
+		pos.x = rand() % Screen_wid;
+		pos.y = rand() % Screen_hei;
+	}
+
+	int Get_PosX()
+	{
+		return pos.x;
+	}
+	int Get_PosY()
+	{
+		return pos.y;
+	}
+};
+class MineManager //mines num_size check // pos_x,y check 
+{
+private :
+	Mine* mines;
+	int minesNumSize;
+	MineManager(int minesNumSize) :minesNumSize(minesNumSize)
+	{
+		mines = (new Mine[minesNumSize]);
+	}
+	~MineManager()
+	{
+		delete[] mines;
+		mines = nullptr;
+		minesNumSize = 0;
+	}
+public :
+	static MineManager* instance;
+
+	static MineManager* getInstance(int minesNumSize)
 	{
 		if (instance == nullptr)
-			instance = new UIScreen();
+			instance = new MineManager(minesNumSize);
 
 		return instance;
 	}
 
-	void clear()
+	void SetMinesPos(Screen* screen)
 	{
-		for (int i = 0;i < hei;i++)
+		for (int i = 0;i < minesNumSize;i++)
 		{
-			memset(canvas[i], ' ', wid + 1);
-			canvas[i][0] = 5;
-			canvas[i][wid + 1] = 5;
-			canvas[i][wid + 2] = '\0';
-			if (i == 0 || i == hei - 1)
+			mines[i].Set_Pos_XY(screen->getWidth(), screen->getHeigt());
+
+			//same position block 
+			for (int j = 0;j < i;j++)
 			{
-				memset(canvas[i], 6, wid + 1);
+				if ( i != j && mines[i].Get_PosX() == mines[j].Get_PosX() && mines[i].Get_PosY() == mines[j].Get_PosY())
+				{
+					i--;
+					break;
+				}
 			}
 		}
-
-		canvas[0][0] = 1;
-		canvas[0][wid + 1] = 2;
-		canvas[hei - 1][0] = 3;
-		canvas[hei - 1][wid + 1] = 4;
-
-		memset(nextblockface, ' ', sizeof(nextblockface));
 	}
 
-	void render()
+	//클릭하면 false 아니면 true --> islooping 재사용때문
+	bool Check_Click_Mine(int pos_X,int pos_Y)
 	{
-		for (int i = 0;i < hei;i++)
+		for (int i = 0;i < minesNumSize;i++)
 		{
-			Borland::gotoxy(20, i);
-			printf("%s", canvas[i]);
-		}
-		Borland::gotoxy(21, 2);
-		printf("score :  %d", this->score);
-		Borland::gotoxy(0, 0);
-
-		for (int i = 0;i < 5;i++)
-		{
-			Borland::gotoxy(20, hei + i);
-			for (int j = 0;j < 4;j++)
+			if (mines[i].Get_PosX()== pos_X && mines[i].Get_PosY() == pos_Y)
 			{
-				printf("%c", canvas[i][j]);
-				if (j == 3)
-					printf("%c\n", canvas[i][wid + 1]);
+				return false;
 			}
 		}
-
-		for (int i = 0;i < 3;i++)
-		{
-			Borland::gotoxy(20 + 1, hei + i + 1);
-			for (int j = 0;j < 3;j++)
-			{
-				printf("%c", nextblockface[i][j]);
-			}
-		}
-
-		Borland::gotoxy(0, 0);
+		return true;
 	}
 
-	void SetNextBlockfacce(const Position pos)
+	// 오류처리를 어떻게 할까.... return 오류.... -->애초에 메서드가 잘못됐다?
+	Mine GetMIne(int arrNum)
 	{
-		nextblockface[pos.y][pos.x] = 'O';
+		return mines[arrNum];
 	}
 
-	void winscore()
+	int GetminesNumSize()
 	{
-		score += 100;
+		return minesNumSize;
 	}
+
 };
-UIScreen* UIScreen::instance = nullptr;
-
-class Input {
-	DWORD cNumRead, fdwMode, i;
-	INPUT_RECORD irInBuf[128];
-	int counter;
+class Input
+{
+private :
 	HANDLE hStdin;
 	DWORD fdwSaveOldMode;
+	DWORD cNumRead, fdwMode, i;
+	INPUT_RECORD irInBuf[128];
+	int counter = 0;
 	char blankChars[80];
-
-	void errorExit(const char*);
-	void keyEventProc(KEY_EVENT_RECORD);
-	void mouseEventProc(MOUSE_EVENT_RECORD);
-	void resizeEventProc(WINDOW_BUFFER_SIZE_RECORD);
-
-	static Input* Instance;
 
 	Input()
 	{
 		memset(blankChars, ' ', 80);
 		blankChars[79] = '\0';
-
 		hStdin = GetStdHandle(STD_INPUT_HANDLE);
 		if (hStdin == INVALID_HANDLE_VALUE)
-			errorExit("GetStdHandle");
+			ErrorExit("GetStdHandle");
 		if (!GetConsoleMode(hStdin, &fdwSaveOldMode))
-			errorExit("GetConsoleMode");
-		/*
-			   Step-1:
-			   Disable 'Quick Edit Mode' option programmatically
-		 */
+			ErrorExit("GetConsoleMode");
+
 		fdwMode = ENABLE_EXTENDED_FLAGS;
 		if (!SetConsoleMode(hStdin, fdwMode))
-			errorExit("SetConsoleMode");
-		/*
-		   Step-2:
-		   Enable the window and mouse input events,
-		   after you have already applied that 'ENABLE_EXTENDED_FLAGS'
-		   to disable 'Quick Edit Mode'
-		*/
+			ErrorExit("SetConsoleMode");
+
 		fdwMode = ENABLE_WINDOW_INPUT | ENABLE_MOUSE_INPUT;
 		if (!SetConsoleMode(hStdin, fdwMode))
-			errorExit("SetConsoleMode");
-
+			ErrorExit("SetConsoleMode");
 	}
 
-	~Input() {
+	~Input()
+	{
 		SetConsoleMode(hStdin, fdwSaveOldMode);
 	}
 
-public:
+	void ErrorExit(const char*);
+public :
+	static Input* instance;
 
-	static Input* GetInstance()
+	static Input* getInstance()
 	{
-		if (Instance == nullptr) {
-			Instance = new Input();
-		}
-		return Instance;
+		if (instance == nullptr)
+			instance = new Input();
+
+		return instance;
 	}
 
-	void readInputs()
+	void readInput()
 	{
-		if (!GetNumberOfConsoleInputEvents(hStdin, &cNumRead)) {
+		if (!GetNumberOfConsoleInputEvents(hStdin, &cNumRead)) 
+		{
 			cNumRead = 0;
 			return;
 		}
+
 		if (cNumRead == 0) return;
 
-		Borland::gotoxy(0, 22);
+		Borland::gotoxy(0, 14);
+		printf("number of inputs %d\n", cNumRead);
 
 
 		if (!ReadConsoleInput(
@@ -298,587 +263,68 @@ public:
 			irInBuf,     // buffer to read into
 			128,         // size of read buffer
 			&cNumRead)) // number of records read
-			errorExit("ReadConsoleInput");
+			ErrorExit("ReadConsoleInput");
 
 		Borland::gotoxy(0, 0);
 	}
-	bool getKeyDown(WORD virtualKeyCode);
-	bool getKey(WORD virtualKeyCode);
-	bool getKeyUp(WORD virtualKeyCode);
-};
-Input* Input::Instance = nullptr;
-class GameManager
-{
-private:
-	Screen* screen;
-	UIScreen* ui;
-	char** map;
-
-	GameManager() : screen(Screen::getInstance()),ui(UIScreen ::getInstance())
-	{
-		map = (char**)malloc(sizeof(char*) * screen->getHeigt()-2);
-		for (int i = 0;i < screen->getHeigt();i++)
-		{
-			map[i] = (char*)malloc(sizeof(char) * screen->getWidth());
-			memset(map[i], 0, screen->getWidth()-1);
-		}
 	
-	}
-
-	~GameManager()
+	Position getMouseButtonDown()
 	{
-		for (int i = 0;i < screen->getHeigt();i++)
-		{
-			free(map[i]);
-		}
-	}
+		Position pos;
 
-public:
-	static GameManager* instance;
-
-	static GameManager* getInstance()
-	{
-		if (instance == nullptr)
-			instance = new GameManager();
-
-		return instance;
-	}
-
-
-	void positionMap(const Position& pos)
-	{
-		map[pos.y][pos.x] = 1;
-	}
-
-	bool IsEmpty(const Position pos)
-	{
-		if (map[pos.y][pos.x] == 1)
-			return false;
-
-		return true;
-	}
-
-	bool isFull(int num)
-	{
-		int size = 0;
-		for (int i = 0;i < screen->getWidth() + 1;i++)
-		{
-			if (map[num][i] == 1)
-				size++;
-		}
-
-		return size == 10;
-	}
-
-	void draw()
-	{
-		for (int i = 0;i < screen->getHeigt() - 1;i++)
-		{
-			for (int j = 0;j < screen->getWidth()+1;j++)
-			{
-				if (map[i][j] == 1)
-				{
-					screen->draw(Position(j, i), 'X');
-				}
-			}
-		}
-	}
-
-	void update()
-	{
-		int i;
-		bool isfull = false;
-		for (i = 0;i < screen->getHeigt() - 1;i++)
-		{
-			isfull=isFull(i);
-			if (isfull)
-				break;
-		}
-
-		if (isfull)
-		{
-			for (int j = 1;j < screen->getWidth() + 1;j++)
-			{
-				map[i][j] = 2;
-				screen->draw(Position(j, i), '+');
-				ui->winscore();
-			}
-
-			char tmp;
-			for(int j = i; j > 1;j--)
-			{
-				for (int r = 1;r < screen->getWidth() + 1;r++)
-				{
-					tmp = map[j][r];
-					map[j][r] = map[j-1][r];
-					map[j - 1][r] = tmp;
-				}
-			}
-		}
-	}
-
-};
-GameManager* GameManager::instance = nullptr;
-
-class Block
-{
-private:
-	Position blockpos[9];
-	Position   mainPos;
-	bool destroy;
-	bool isLeftBlock;
-	bool isRightBlock;
-	char face[3][3];
-	int faceblocklength;
-
-public:
-	Block()
-	{
-		destroy = false;
-		mainPos.x = 5;
-		mainPos.y = 2;
-		for (int i = 0;i < 3;i++)
-		{
-			memset(face[i], ' ', 3);
-		}
-	}
-	~Block()
-	{
-		mainPos = NULL;
-	}
-	
-	void setBlockface(const Position& pos,char shape)
-	{
-		face[pos.y][pos.x] = shape;
-	}
-
-	void setBlockface(const Position arr[],int len,char shape)
-	{
-		faceblocklength = len;
-		for (int i = 0;i < len;i++)
-		{
-			blockpos[i] = arr[i];
-			face[arr[i].y][arr[i].x] = shape;
-		}
+		if (cNumRead == 0) return pos;
 		
-	}
-
-	void BlockMove(const char& keyCode) // R : Right   L:left   D : down
-	{
-		if (keyCode == 'L')
 		
-			this->mainPos.x--;
-		
+		for (int i = 0; i < cNumRead; i++)
+		{
+			if (irInBuf[i].EventType != MOUSE_EVENT) continue;
 			
-		else if (keyCode == 'R')
-			this->mainPos.x++;
-		
-
-		else if (keyCode == 'D')
-			this->mainPos.y++;
-
-	}
-
-	void rotateLeftBlockface()
-	{
-		char tmp[3][3];
-		int index = 0;
-
-		if (mainPos.x >= 9)
-			mainPos.x--;
-		if (mainPos.x <= 1)
-			mainPos.x++;
-
-
-		for (int i = 0;i < 3;i++)
-		{
-			for (int j = 0;j < 3;j++)
+			if (irInBuf[i].Event.MouseEvent.dwButtonState == FROM_LEFT_1ST_BUTTON_PRESSED)
 			{
-				tmp[j][3 - i - 1] = this->face[i][j];
+				pos.x = irInBuf[i].Event.MouseEvent.dwMousePosition.X;
+				pos.y = irInBuf[i].Event.MouseEvent.dwMousePosition.Y;
 			}
 		}
 
-		for (int i = 0;i < 3;i++)
-		{
-			for (int j = 0;j < 3;j++)
-			{
-				this->face[i][j] = tmp[i][j];
-			}
-		}
-		
-		for (int i = 0;i < 3;i++)
-		{
-			for (int j = 0;j < 3;j++)
-			{
-				if (face[i][j] == 'O')
-				{
-					this->blockpos[index] = Position(i, j);
-					index++;
-				}
-			}
-		}
-
-	}
-
-	Position getMainPos()
-	{
-		return mainPos;
-	}
-
-	void setMainPos(const Position pos)
-	{
-		mainPos.x = pos.x;
-		mainPos.y = pos.y;
-	}
-
-	Position getBlockPos(int num)
-	{
-		return blockpos[num];
-	}
-
-	char getBlockface()
-	{
-		for (int i = 0;i < 3;i++)
-		{
-			for (int j = 0;j < 3;j++)
-			{
-				if (face[i][j] != ' ')
-				{
-					return this->face[i][j];
-				}
-			}
-		}
-	}
-
-	int getBlockPosLength()
-	{
-		return faceblocklength;
-	}
-
-	void setDestoy(bool value)
-	{
-		destroy = value;
-	}
-
-	bool getDestoy()
-	{
-		return destroy;
-	}
-};
-
-class BlockManager
-{
-	enum class BlockFaces
-	{
-		//ㄱ, ㅁ, ㅣ, ㄹ , ㄹ반대
-		Atype = 0,
-		Btype,
-		Ctype,
-		Dtype,
-		Etype
-	};
-
-	const Position Atype[5] = { Position(0,0), Position(1,0),Position(2,0), Position(2,1),Position(2,2) };
-	const Position Btype[4] = { Position(0,0), Position(1,0),Position(0,1),Position(1,1) };
-	const Position Ctype[3] = { Position(0,1),Position(1,1),Position(2,1) };
-	const Position Dtype[4] = { Position(0,2),Position(0,1),Position(1,1),Position(1,0) };
-	const Position Etype[4] = { Position(0,0),Position(0,1),Position(1,1),Position(1,2) };
-
-	Block* blocks;
-	GameManager* gameManager;
-	Input* input;
-	Screen* screen;
-	UIScreen* ui;
-	int key;
-
-	BlockManager() : gameManager(GameManager::getInstance()), input(Input::GetInstance()), screen(Screen::getInstance()),ui(UIScreen::getInstance())
-	{
-		key = 0;
-		srand(time(nullptr));
-
-		blocks = new Block[3];
-		for (int i = 0;i < 3;i++)
-		{
-			BlockFaces type = BlockFaces(rand() % 5); //rand() % 5
-			switch (type)
-			{
-			case BlockManager::BlockFaces::Atype:
-				blocks[i].setBlockface(Atype, 5, 'O');
-				break;
-			case BlockManager::BlockFaces::Btype:
-				blocks[i].setBlockface(Btype, 4, 'O');
-				break;
-			case BlockManager::BlockFaces::Ctype:
-				blocks[i].setBlockface(Ctype, 3, 'O');
-				break;
-			case BlockManager::BlockFaces::Dtype:
-				blocks[i].setBlockface(Dtype, 4, 'O');
-				break;
-			case BlockManager::BlockFaces::Etype:
-				blocks[i].setBlockface(Etype, 4, 'O');
-				break;
-			default:
-				break;
-			}
-		}
-
-	}
-
-	~BlockManager()
-	{
-		free(blocks);
-	}
-
-
-public:
-	static BlockManager* instance;
-
-	static BlockManager* getInstance()
-	{
-		if (instance == nullptr)
-			instance = new BlockManager();
-
-		return instance;
-	}
-
-	void resetBlocks(int num)
-	{
-		Block* b = new Block();
-		blocks[num] = *b;
-
-		BlockFaces type = BlockFaces(rand() % 5);//rand() % 5
-		switch (type)
-		{
-		case BlockManager::BlockFaces::Atype:
-			blocks[num].setBlockface(Atype, 5, 'O');
-			break;
-		case BlockManager::BlockFaces::Btype:
-			blocks[num].setBlockface(Btype, 4, 'O');
-			break;
-		case BlockManager::BlockFaces::Ctype:
-			blocks[num].setBlockface(Ctype, 3, 'O');
-			break;
-		case BlockManager::BlockFaces::Dtype:
-			blocks[num].setBlockface(Dtype, 4, 'O');
-			break;
-		case BlockManager::BlockFaces::Etype:
-			blocks[num].setBlockface(Etype, 4, 'O');
-			break;
-		default:
-			break;
-		}
-
-	}
-
-	void draw()
-	{
-		int len = blocks[key].getBlockPosLength();
-
-		for (int i = 0;i < len;i++)
-		{
-			Position drawpos = blocks[key].getMainPos();
-			drawpos.x += blocks[key].getBlockPos(i).x;
-			drawpos.y += blocks[key].getBlockPos(i).y;	
-			screen->draw(drawpos, blocks[key].getBlockface());
-		}
-	}
-
-	void update()
-	{
-		if (blocks[key].getDestoy())
-		{
-			resetBlocks(key);
-			key++;
-			if (key >= 3)
-				key = 0;
-		}
-
-		int len;
-
-		//UI face info
-		int nextkey = key+1;
-		if (nextkey >= 3)
-			nextkey = 0;
-
-		len = blocks[nextkey].getBlockPosLength();
-
-		for (int i = 0;i < len;i++)
-		{
-			ui->SetNextBlockfacce(blocks[nextkey].getBlockPos(i));
-		}
-
-		len = blocks[key].getBlockPosLength();
-		if (input->getKey(VK_LEFT))
-		{
-			for (int i = 0;i < len;i++)
-			{
-				Position currentPos = blocks[key].getMainPos();
-				Position pos = blocks[key].getBlockPos(i);
-				currentPos.x += pos.x;
-
-				if (currentPos.x <= 1)
-					return;
-
-				currentPos.x--;
-				currentPos.y += pos.y;
-
-				bool canmove = gameManager->IsEmpty(currentPos);
-
-				if (!canmove) return;
-			}
-
-			blocks[key].BlockMove('L');
-
-		}
-		
-		if (input->getKey(VK_RIGHT))
-		{
-			for (int i = 0;i < len;i++)
-			{
-				Position currentPos = blocks[key].getMainPos();
-				Position pos = blocks[key].getBlockPos(i);
-				currentPos.x += pos.x;
-
-				if (currentPos.x >= 10)
-					return;
-
-				currentPos.x++;
-				currentPos.y += pos.y;
-				bool canmove = gameManager->IsEmpty(currentPos);
-
-				if (!canmove) return;
-
-			}
-			blocks[key].BlockMove('R');
-		}
-
-		if (input->getKey(VK_UP))
-		{
-			blocks[key].rotateLeftBlockface();
-		}
-
-		if (input->getKey(VK_DOWN))
-		{
-			//check touch something by block move 
-			bool canmove = false;
-			for (int i = 0;i < len;i++)
-			{
-				Position pos = blocks[key].getBlockPos(i);
-				Position currentPos = blocks[key].getMainPos();
-				currentPos.x += pos.x;
-				currentPos.y += pos.y;
-				currentPos.y++;
-				canmove = gameManager->IsEmpty(currentPos);
-
-				if (!canmove) break;
-				if (currentPos.y >= 19)
-				{
-					canmove = false;
-					break;
-				}
-			}
-
-			if(canmove)
-				blocks[key].BlockMove('D');
-
-			else
-			{
-				for (int i = 0;i < len;i++)
-				{
-					Position pos = blocks[key].getBlockPos(i);
-					Position mainPos = blocks[key].getMainPos();
-					mainPos.x += pos.x;
-					mainPos.y += pos.y;
-
-					blocks[key].setBlockface(pos, 'X');
-					gameManager->positionMap(mainPos);
-				}
-				blocks[key].setDestoy(true);
-			}
-		}
-
-		if (input->getKey(VK_SPACE))
-		{
-			int y = 0;
-			bool canmove = false;
-			while (1)
-			{
-				for (int i = 0;i < len;i++)
-				{
-					Position pos = blocks[key].getBlockPos(i);
-					Position currentPos = blocks[key].getMainPos();
-					currentPos.x += pos.x;
-					currentPos.y += pos.y;
-					currentPos.y +=y;
-					canmove = gameManager->IsEmpty(currentPos);
-
-					if (!canmove) break;
-					if (currentPos.y >= 19)
-					{
-						canmove = false;
-						break;
-					}
-				}
-				
-				if (!canmove)
-					break;
-
-				y++;
-			}
-
-			for (int i = 0;i < len;i++)
-			{
-				Position pos = blocks[key].getBlockPos(i);
-				Position mainPos = blocks[key].getMainPos();
-				mainPos.x += pos.x;
-				mainPos.y += pos.y;
-				mainPos.y += y-1;
-
-				blocks[key].setBlockface(pos, 'X');
-				gameManager->positionMap(mainPos);
-			}
-
-			blocks[key].setDestoy(true);
-		}
-		
+		return pos;
 	}
 	
 };
-BlockManager* BlockManager::instance = nullptr;
 
-int main()
+void Screen::draw(int x,int y,MineManager* mines)
 {
-	Screen* screen = Screen::getInstance();
-	GameManager* gm = GameManager::getInstance();
-	Input* input = Input::GetInstance();
-	BlockManager* b = BlockManager::getInstance();
-	UIScreen* ui = UIScreen::getInstance();
-
-	while (1)
+	//48 = 0
+	char num = 48;
+	
+	for (int i = -1;i < 2;i++)
 	{
-		screen->clear();
-		ui->clear();
+		for (int j = -1;j < 2;j++)
+		{
+			if (i == 0 && j == 0) continue;
+			if (x + i<0 || x + i >height) continue;
+			if (y + j<0 || y + j >width) continue;
 
-		gm->draw();
-		b->draw();
-
-		input->readInputs();
-
-		b->update();
-
-		gm->update();
-
-		screen->render();
-		ui->render();
-		Sleep(100);
+			if (mines->Check_Click_Mine(x + i, y + j) == false)
+				num++;
+		}
 	}
 
-	return 0;
+	
+	canvas[(width + 1) * x + y] = num;
 }
 
+//if player finish games and then show map
+void Screen :: draw (MineManager* mines)
+{
+	for (int i = 0;i < mines->GetminesNumSize();i++)
+	{
+		int x = mines->GetMIne(i).Get_PosX();
+		int y = mines->GetMIne(i).Get_PosY();
+		canvas[(width+1)*x + y] = '*';
+	}
+}
 
-
-void Input::errorExit(const char* lpszMessage)
+void Input::ErrorExit(const char* lpszMessage)
 {
 	fprintf(stderr, "%s\n", lpszMessage);
 
@@ -889,124 +335,66 @@ void Input::errorExit(const char* lpszMessage)
 	ExitProcess(0);
 }
 
-bool Input::getKeyDown(WORD virtualKeyCode)
-{
-	// TODO: NOT FULLY IMPLEMENTED YET
-	return getKey(virtualKeyCode);
-}
 
-bool Input::getKey(WORD virtualKeyCode)
-{
-	if (cNumRead == 0) return false;
+Input* Input::instance = nullptr;
+MineManager* MineManager::instance = nullptr;
+Screen* Screen::instance = nullptr;
 
-	for (int i = 0; i < cNumRead; i++)
+int main()
+{
+	srand(time(nullptr));
+	bool winGame = false;
+	Screen* screen = Screen::getInstance(10, 10);
+	MineManager* mines = MineManager::getInstance(rand() % 10 + 10);
+	Input *input = Input::getInstance();
+	Position Mouse_Click_pos;
+
+	mines->SetMinesPos(screen);
+
+	bool isLooping = true;
+	screen->clear();
+	while (isLooping) 
 	{
-		if (irInBuf[i].EventType != KEY_EVENT) continue;
+		screen->render();
+		input->readInput();
 
-		if (irInBuf[i].Event.KeyEvent.wVirtualKeyCode == virtualKeyCode &&
-			irInBuf[i].Event.KeyEvent.bKeyDown == TRUE) {
-			return true;
+		Mouse_Click_pos = input->getMouseButtonDown();
+
+		//Clicked Mouse Left_button
+		if(Mouse_Click_pos.x >= 0)
+		{
+			isLooping = mines->Check_Click_Mine(Mouse_Click_pos.y, Mouse_Click_pos.x);
+			screen->draw(Mouse_Click_pos.y, Mouse_Click_pos.x, mines);
 		}
+
+		//Click Mine
+		if (!isLooping)
+		{ 
+			break;
+		}
+
+		//Finish Game
+		if (screen->get_NumEmptyCanvas() == mines->GetminesNumSize())
+		{
+			winGame = true;
+			break;
+		}
+		
+		Sleep(100);
 	}
-	return false;
-}
 
-bool Input::getKeyUp(WORD virtualKeyCode)
-{
-	if (cNumRead == 0) return false;
+	screen->draw(mines);
+	screen->render();
 
-	for (int i = 0; i < cNumRead; i++)
+	if (winGame)
 	{
-		if (irInBuf[i].EventType != KEY_EVENT) continue;
-
-		if (irInBuf[i].Event.KeyEvent.wVirtualKeyCode == virtualKeyCode &&
-			irInBuf[i].Event.KeyEvent.bKeyDown == FALSE) {
-			return true;
-		}
+		printf("\nGame Win\n");
 	}
-	return false;
-}
-
-void Input::keyEventProc(KEY_EVENT_RECORD ker)
-{
-	Borland::gotoxy(0, 11);
-	printf("%s\r", blankChars);
-	switch (ker.wVirtualKeyCode) {
-	case VK_LBUTTON:
-		printf("left button ");
-		break;
-	case VK_BACK:
-		printf("back space");
-		break;
-	case VK_RETURN:
-		printf("enter key");
-		break;
-	case VK_LEFT:
-		printf("arrow left");
-		break;
-	case VK_UP:
-		printf("arrow up");
-		break;
-	default:
-		if (ker.wVirtualKeyCode >= 0x30 && ker.wVirtualKeyCode <= 0x39)
-			printf("Key event: %c ", ker.wVirtualKeyCode - 0x30 + '0');
-		else printf("Key event: %c ", ker.wVirtualKeyCode - 0x41 + 'A');
-		break;
-	}
-
-	Borland::gotoxy(0, 0);
-}
-
-void Input::mouseEventProc(MOUSE_EVENT_RECORD mer)
-{
-	Borland::gotoxy(0, 12);
-	printf("%s\r", blankChars);
-#ifndef MOUSE_HWHEELED
-#define MOUSE_HWHEELED 0x0008
-#endif
-	printf("Mouse event: ");
-
-	switch (mer.dwEventFlags)
+	else
 	{
-	case 0:
-		if (mer.dwButtonState == FROM_LEFT_1ST_BUTTON_PRESSED)
-		{
-			printf("left button press %d %d\n", mer.dwMousePosition.X, mer.dwMousePosition.Y);
-		}
-		else if (mer.dwButtonState == RIGHTMOST_BUTTON_PRESSED)
-		{
-			printf("right button press \n");
-		}
-		else
-		{
-			printf("button press\n");
-		}
-		break;
-	case DOUBLE_CLICK:
-		printf("double click\n");
-		break;
-	case MOUSE_HWHEELED:
-		printf("horizontal mouse wheel\n");
-		break;
-	case MOUSE_MOVED:
-		printf("mouse moved %d %d\n", mer.dwMousePosition.X, mer.dwMousePosition.Y);
-		break;
-	case MOUSE_WHEELED:
-		printf("vertical mouse wheel\n");
-		break;
-	default:
-		printf("unknown\n");
-		break;
+		printf("\nGame Over\n");
 	}
-	Borland::gotoxy(0, 0);
-}
 
-void Input::resizeEventProc(WINDOW_BUFFER_SIZE_RECORD wbsr)
-{
-	Borland::gotoxy(0, 13);
-	printf("%s\r", blankChars);
-	printf("Resize event: ");
-	printf("Console screen buffer is %d columns by %d rows.\n", wbsr.dwSize.X, wbsr.dwSize.Y);
-	Borland::gotoxy(0, 0);
+	return 0;
 }
 

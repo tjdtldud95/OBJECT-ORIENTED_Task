@@ -7,6 +7,7 @@
 #include"Utils.h"
 
 class Screen;
+class UIScreen;
 class Block;
 class BlockManager;
 class Input;
@@ -114,6 +115,115 @@ public:
 
 };
 Screen* Screen::instance = nullptr;
+class UIScreen
+{
+private:
+	char nextblockface[3][3];
+	int score;
+	char** canvas;
+	int wid;
+	int hei;
+
+	UIScreen(int width = 20, int height = 5) : wid(width), hei(height)
+	{
+		memset(nextblockface, ' ', sizeof(nextblockface));
+		score = 0;
+
+		canvas = (char**)malloc(sizeof(char*) * height);
+		for (int i = 0;i < height;i++)
+		{
+			canvas[i] = (char*)malloc(sizeof(char) * width + 1);
+		}
+
+	}
+	~UIScreen()
+	{
+		for (int i = 0;i < hei;i++)
+		{
+			free(canvas[i]);
+		}
+		free(canvas);
+		wid = 0; hei = 0;
+	}
+public:
+	static UIScreen* instance;
+
+	static UIScreen* getInstance()
+	{
+		if (instance == nullptr)
+			instance = new UIScreen();
+
+		return instance;
+	}
+
+	void clear()
+	{
+		for (int i = 0;i < hei;i++)
+		{
+			memset(canvas[i], ' ', wid + 1);
+			canvas[i][0] = 5;
+			canvas[i][wid + 1] = 5;
+			canvas[i][wid + 2] = '\0';
+			if (i == 0 || i == hei - 1)
+			{
+				memset(canvas[i], 6, wid + 1);
+			}
+		}
+
+		canvas[0][0] = 1;
+		canvas[0][wid + 1] = 2;
+		canvas[hei - 1][0] = 3;
+		canvas[hei - 1][wid + 1] = 4;
+
+		memset(nextblockface, ' ', sizeof(nextblockface));
+	}
+
+	void render()
+	{
+		for (int i = 0;i < hei;i++)
+		{
+			Borland::gotoxy(20, i);
+			printf("%s", canvas[i]);
+		}
+		Borland::gotoxy(21, 2);
+		printf("score :  %d", this->score);
+		Borland::gotoxy(0, 0);
+
+		for (int i = 0;i < 5;i++)
+		{
+			Borland::gotoxy(20, hei + i);
+			for (int j = 0;j < 4;j++)
+			{
+				printf("%c", canvas[i][j]);
+				if (j == 3)
+					printf("%c\n", canvas[i][wid + 1]);
+			}
+		}
+
+		for (int i = 0;i < 3;i++)
+		{
+			Borland::gotoxy(20 + 1, hei + i + 1);
+			for (int j = 0;j < 3;j++)
+			{
+				printf("%c", nextblockface[i][j]);
+			}
+		}
+
+		Borland::gotoxy(0, 0);
+	}
+
+	void SetNextBlockfacce(const Position pos)
+	{
+		nextblockface[pos.y][pos.x] = 'O';
+	}
+
+	void winscore()
+	{
+		score += 100;
+	}
+};
+UIScreen* UIScreen::instance = nullptr;
+
 class Input {
 	DWORD cNumRead, fdwMode, i;
 	INPUT_RECORD irInBuf[128];
@@ -201,9 +311,10 @@ class GameManager
 {
 private:
 	Screen* screen;
+	UIScreen* ui;
 	char** map;
 
-	GameManager() : screen(Screen::getInstance())
+	GameManager() : screen(Screen::getInstance()),ui(UIScreen ::getInstance())
 	{
 		map = (char**)malloc(sizeof(char*) * screen->getHeigt()-2);
 		for (int i = 0;i < screen->getHeigt();i++)
@@ -284,12 +395,13 @@ public:
 				break;
 		}
 
-		if (isfull) // not yet
+		if (isfull)
 		{
 			for (int j = 1;j < screen->getWidth() + 1;j++)
 			{
 				map[i][j] = 2;
 				screen->draw(Position(j, i), '+');
+				ui->winscore();
 			}
 
 			char tmp;
@@ -307,6 +419,7 @@ public:
 
 };
 GameManager* GameManager::instance = nullptr;
+
 class Block
 {
 private:
@@ -475,10 +588,10 @@ class BlockManager
 	GameManager* gameManager;
 	Input* input;
 	Screen* screen;
+	UIScreen* ui;
 	int key;
 
-public:
-	BlockManager() : gameManager(GameManager::getInstance()), input(Input::GetInstance()), screen(Screen::getInstance())
+	BlockManager() : gameManager(GameManager::getInstance()), input(Input::GetInstance()), screen(Screen::getInstance()),ui(UIScreen::getInstance())
 	{
 		key = 0;
 		srand(time(nullptr));
@@ -516,6 +629,17 @@ public:
 		free(blocks);
 	}
 
+
+public:
+	static BlockManager* instance;
+
+	static BlockManager* getInstance()
+	{
+		if (instance == nullptr)
+			instance = new BlockManager();
+
+		return instance;
+	}
 
 	void resetBlocks(int num)
 	{
@@ -567,9 +691,23 @@ public:
 			key++;
 			if (key >= 3)
 				key = 0;
-			return;
 		}
-		int len = blocks[key].getBlockPosLength();
+
+		int len;
+
+		//UI face info
+		int nextkey = key+1;
+		if (nextkey >= 3)
+			nextkey = 0;
+
+		len = blocks[nextkey].getBlockPosLength();
+
+		for (int i = 0;i < len;i++)
+		{
+			ui->SetNextBlockfacce(blocks[nextkey].getBlockPos(i));
+		}
+
+		len = blocks[key].getBlockPosLength();
 		if (input->getKey(VK_LEFT))
 		{
 			for (int i = 0;i < len;i++)
@@ -706,30 +844,32 @@ public:
 	}
 	
 };
-
+BlockManager* BlockManager::instance = nullptr;
 
 int main()
 {
 	Screen* screen = Screen::getInstance();
 	GameManager* gm = GameManager::getInstance();
 	Input* input = Input::GetInstance();
-	BlockManager b;
+	BlockManager* b = BlockManager::getInstance();
+	UIScreen* ui = UIScreen::getInstance();
 
 	while (1)
 	{
 		screen->clear();
+		ui->clear();
 
 		gm->draw();
-		b.draw();
+		b->draw();
 
 		input->readInputs();
 
-		b.update();
+		b->update();
 
 		gm->update();
 
 		screen->render();
-
+		ui->render();
 		Sleep(100);
 	}
 

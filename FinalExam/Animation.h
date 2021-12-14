@@ -1,7 +1,8 @@
 #pragma once
 #include "Behaviour.h"
 #include "GameObject.h"
-class Animation //: public Renderer
+
+class Animation 
 	:public Behaviour
 {
 	vector<string> ani;

@@ -7,7 +7,6 @@ class MapScript :
 	public Behaviour
 {
 	bool* map;
-
 	static const char rectFill = '\xdb';
 
 public :

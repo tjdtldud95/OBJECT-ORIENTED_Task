@@ -1,31 +1,28 @@
 #pragma once
-#include "Renderer.h"
+#include "Behaviour.h"
 #include "GameObject.h"
-class Animation : public Renderer
+class Animation //: public Renderer
+	:public Behaviour
 {
-	Transform* transform;
 	vector<string> ani;
 	int aniIndex;
-	int indexMax;
 
 public :
-	Animation(GameObject* gameObject)
-		: Renderer(gameObject, nullptr, gameObject->getRenderer()->getDimension() + Position::ones), aniIndex(0), indexMax(0)
-		, transform(gameObject->getTransform()) {}
+	Animation(GameObject* gameObject) :Behaviour(gameObject),
+		aniIndex(0) {}
 
-	void addAnimation(const string shape,Dimension dim)
+	void addAnimation(const string shape)
 	{
 		ani.push_back(shape);
-		
-		indexMax++;
 	}
 
-	void draw() override
-	{
-		if (indexMax == 0) return;
 
-		screen->draw(transform->getPos(), ani[aniIndex].c_str(), { 5,3 });
-		aniIndex = (aniIndex + 1) % indexMax;
+	void update() override
+	{
+		if (ani.size() == 0) return;
+
+		renderer->setShape(ani[aniIndex].c_str());
+		aniIndex = (aniIndex + 1) % ani.size();
 	}
 };
 

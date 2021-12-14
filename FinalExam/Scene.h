@@ -5,6 +5,7 @@
 #include "PanelRenderer.h"
 #include "PlayerScript.h"
 #include "Animation.h"
+#include "MapScript.h"
 using namespace std;
 
 class Scene : public GameObject
@@ -12,16 +13,21 @@ class Scene : public GameObject
     bool    isCompleted;
     Input*  input;
     GameObject* player;
+    GameObject* map;
 public:
 
     Scene() 
         : GameObject{ nullptr, "root", "root", nullptr, {1, 1}, {0, 0}, Position::zeros }, isCompleted(false),
         input( Input::GetInstance() )
-    {
-        player = new GameObject{ this,"Player","Player",nullptr,{5,3} ,Position::zeros ,Position::zeros };
+    {   
+        map = new GameObject(this, "map", "panel", nullptr, { 70, 20 }, Position::zeros, Position::zeros);
+        map->getOrAddComponent<MapScript>();
+        //player
+        player = new GameObject{ map,"Player","Player",nullptr,{5,3} ,{0,10} ,Position::zeros };
         player->addComponent< PlayerScript>();
-        player->getOrAddComponent<Animation>()->addAnimation("  -*-*****  ***", { 5,5 });
-        player->getComponent<Animation>()->addAnimation("   * *****  ***", { 5,5 });
+        player->getOrAddComponent<Animation>()->addAnimation("  -l-*****  ***");
+        player->getComponent<Animation>()->addAnimation("   l *****  ***");
+        
     }
 
     void start() override { internalStart(); }

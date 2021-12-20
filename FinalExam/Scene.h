@@ -27,8 +27,10 @@ public:
         //player
         player = new GameObject{ map,"Player","Player",nullptr,{5,3} ,{0,10} ,Position::zeros };
         player->addComponent< PlayerScript>();
-        player->getOrAddComponent<Animation>()->addAnimation("  -l-*****  ***");
-        player->getComponent<Animation>()->addAnimation("   l *****  ***");
+        player->getOrAddComponent<Animation>()->addAnimation("   \xc5 *****  ***");
+        player->getComponent<Animation>()->addAnimation("   \xB3\xc4*****  ***");
+        player->getComponent<Animation>()->addAnimation("   \xc5 *****  ***");
+        player->getComponent<Animation>()->addAnimation("  \xc4\xB3 *****  ***");
 
         //obstacle
         auto obShape = Obstacle::ChooseShape();

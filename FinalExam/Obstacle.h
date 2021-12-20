@@ -50,15 +50,21 @@ public:
 	}
 	void update() override
 	{
+		auto shape = renderer->getShape();
+		auto pos = transform->getPos();
 		auto dim = renderer->getDimension();
-		int nextX = currentX - 1;
+		auto width = dim.x;
+		auto height = dim.y;
+		int nextX = currentX - 0.1f;
 
 
-		if (mapScript->isValidRange({ nextX,currentY }, dim))
+		if (mapScript->isValidRange({ nextX,currentY }, dim) )
 		{
-			currentX = nextX;
-			transform->setPos(currentX, currentY);
+			//currentX = nextX;
+			//transform->setPos(currentX, currentY);
+			mapScript->place(shape, pos, width, height);
 		}
+
 
 	}
 

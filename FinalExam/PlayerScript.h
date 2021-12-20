@@ -34,6 +34,24 @@ public:
 	void update() override
 	{
 		auto dim = renderer->getDimension();
+		auto shape = renderer->getShape();
+		auto pos = transform->getPos();
+		auto width = dim.x;
+		auto height = dim.y;
+
+		if (mapScript->isCruched(shape, pos, width, height))
+		{
+			Borland::Gotoxy(5, 35);
+			printf("Cruch");
+			Borland::Gotoxy(0, 0);
+		}
+		else
+		{
+			Borland::Gotoxy(5, 35);
+			printf("not  ");
+			Borland::Gotoxy(0, 0);
+		}
+
 		if (input->getKey(VK_DOWN))
 		{
 			int nextY = currentY + 1;
@@ -52,8 +70,6 @@ public:
 				currentY = nextY;
 				transform->setPos(currentX, currentY);
 			}
-
-			return;
 		}
 
 		if (input->getKey(VK_RIGHT))
@@ -68,9 +84,12 @@ public:
 		}
 		if (input->getKey(VK_LEFT))
 		{
-			if (currentX <= 0) return;
-			currentX--;
-			transform->setPos(currentX, currentY);
+			int nextX = currentX - 1;
+			if (mapScript->isValidRange({ nextX,currentY }, dim))
+			{
+				currentX = nextX;
+				transform->setPos(currentX, currentY);
+			}
 		}
 	}
 };

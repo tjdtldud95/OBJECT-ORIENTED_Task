@@ -9,9 +9,5 @@ void Renderer::draw() {
 void Renderer::render(const Position& parentWorldPos, bool dirty) {
     if (enabled == false) return;
     if (dirty == true) worldPos = transform->local2World(parentWorldPos);
-    if (gameObject->getName() == "currentBlock") {
-        Borland::Gotoxy(0, 37);
-        std::cout << dim << worldPos << getParent()->getName() << dirty;
-    }
     draw();
 }

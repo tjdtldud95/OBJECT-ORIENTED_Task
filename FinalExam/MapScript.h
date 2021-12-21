@@ -57,6 +57,14 @@ public :
 		}
 	}
 
+	void clear() {
+		auto dim = renderer->getDimension();
+		auto size = size_t(dim.x * dim.y);
+		
+		memset(map, false, size);
+		load(size);
+	}
+
 	bool isValidRange(const Position& nextPos, const Dimension& sz)
 	{
 		auto pos = transform->getPos();
@@ -71,7 +79,7 @@ public :
 		for (int i = 0; i < h; i++) {
 			for (int j = 0; j < w; j++) {
 				if (shape[j + i * w] != ' ') {
-					map[pos.x + j + (pos.y + i) * dim.x] = true;
+					map[pos.x-1+ j + (pos.y + i) * dim.x] = true;
 					renderer->setShape(rectFill, { pos.x + j, pos.y + i });
 				}
 			}
@@ -84,25 +92,23 @@ public :
 		auto height = dim.y;
 		auto width = dim.x;
 
+		if (pos.y < 1 || pos.y >=19) return true;
+
 		auto capacity = renderer->getCapacity();
-		for (auto j = 0; j < w; j++) 
+
+		for (auto i = 0;i < w;i++)
 		{
-			auto i = 0;
-			auto last = -1;
-			for (i = 0; i < h; i++) 
+			for (auto j = 0;j < h;j++)
 			{
-				if (shape[j + i * w] != ' ' )
+				if (shape[j + i * w] != ' ')
 				{
-					last = i;
+					auto nextOffset = pos.x + i + (pos.y + j) * width;
+					if (nextOffset >= capacity) return true;
+					if (map[nextOffset] == true) return true;
 				}
 			}
-			if (last == -1) continue;
-			auto nextOffset = pos.x + j + (pos.y + last) * width;
-			if (nextOffset >= capacity) return true;
-			if (map[nextOffset] == true) return true;
-			nextOffset = pos.x + j + (pos.y + last - 1) * width;;
-			if (map[nextOffset] == true) return true;
 		}
+	
 		return false;
 	}
 

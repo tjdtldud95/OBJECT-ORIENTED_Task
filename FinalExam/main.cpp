@@ -10,8 +10,6 @@
 using namespace std;
 
 
-// https://github.com/beomjoo90/OOP2021 , branch: 2학기
-
 int main()
 {
 	auto screen = Screen::GetInstance();

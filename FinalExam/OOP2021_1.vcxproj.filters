@@ -63,9 +63,6 @@
     <ClCompile Include="Obstacle.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="ObstacleManager.cpp">
-      <Filter>소스 파일</Filter>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Screen.h">
@@ -108,9 +105,6 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="Obstacle.h">
-      <Filter>헤더 파일</Filter>
-    </ClInclude>
-    <ClInclude Include="ObstacleManager.h">
       <Filter>헤더 파일</Filter>
     </ClInclude>
   </ItemGroup>

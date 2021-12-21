@@ -161,7 +161,6 @@
     <ClCompile Include="main.cpp" />
     <ClCompile Include="MapScript.cpp" />
     <ClCompile Include="Obstacle.cpp" />
-    <ClCompile Include="ObstacleManager.cpp" />
     <ClCompile Include="PlayerScript.cpp" />
     <ClCompile Include="PanelRenderer.cpp" />
     <ClCompile Include="Position.cpp" />
@@ -179,7 +178,6 @@
     <ClInclude Include="Input.h" />
     <ClInclude Include="MapScript.h" />
     <ClInclude Include="Obstacle.h" />
-    <ClInclude Include="ObstacleManager.h" />
     <ClInclude Include="PlayerScript.h" />
     <ClInclude Include="Position.h" />
     <ClInclude Include="Renderer.h" />

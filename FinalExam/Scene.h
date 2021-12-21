@@ -27,14 +27,14 @@ public:
         //player
         player = new GameObject{ map,"Player","Player",nullptr,{5,3} ,{0,10} ,Position::zeros };
         player->addComponent< PlayerScript>();
-        player->getOrAddComponent<Animation>()->addAnimation("   \xc5 *****  ***");
-        player->getComponent<Animation>()->addAnimation("   \xB3\xc4*****  ***");
-        player->getComponent<Animation>()->addAnimation("   \xc5 *****  ***");
-        player->getComponent<Animation>()->addAnimation("  \xc4\xB3 *****  ***");
+        player->getOrAddComponent<Animation>()->addAnimation("   \xc5 \xc4\xc4\xc2\xd9\xBF  \xc0\xc4\xd9");
+        player->getComponent<Animation>()->addAnimation("   \xB3\xc4\xc4\xc4\xc2\xd9\xBF  \xc0\xc4\xd9");
+        player->getComponent<Animation>()->addAnimation("   \xc5 \xc4\xc4\xc2\xd9\xBF  \xc0\xc4\xd9");
+        player->getComponent<Animation>()->addAnimation("  \xc4\xB3 \xc4\xc4\xc2\xd9\xBF  \xc0\xc4\xd9");
 
         //obstacle
         auto obShape = Obstacle::ChooseShape();
-        currentObstacle = new GameObject(map, "currentOBstacle", "block", obShape.shape.c_str(), obShape.dim, Position{ 70,5 });
+        currentObstacle = new GameObject(map, "currentOBstacle", "block", obShape.shape.c_str(), obShape.dim, Position{ 69,0 });
         currentObstacle->addComponent<Obstacle>();
     }
 

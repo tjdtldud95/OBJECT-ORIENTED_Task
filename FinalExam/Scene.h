@@ -6,7 +6,7 @@
 #include "PlayerScript.h"
 #include "Animation.h"
 #include "MapScript.h"
-#include "Obstacle.h"
+#include "ObstacleManager.h"
 using namespace std;
 
 class Scene : public GameObject
@@ -15,7 +15,8 @@ class Scene : public GameObject
     Input*  input;
     GameObject* player;
     GameObject* map;
-    GameObject* currentObstacle;
+    GameObject* obstacles;
+
 public:
 
     Scene() 
@@ -33,9 +34,8 @@ public:
         player->getComponent<Animation>()->addAnimation("  \xc4\xB3 \xc4\xc4\xc2\xd9\xBF  \xc0\xc4\xd9");
 
         //obstacle
-        auto obShape = Obstacle::ChooseShape();
-        currentObstacle = new GameObject(map, "currentOBstacle", "block", obShape.shape.c_str(), obShape.dim, Position{ 69,0 });
-        currentObstacle->addComponent<Obstacle>();
+        obstacles = new GameObject(map, "obstalce", "Manager", nullptr, Position::zeros, Position::zeros, Position::zeros);
+        obstacles->getOrAddComponent<ObstacleManager>();
     }
 
     void start() override { internalStart(); }

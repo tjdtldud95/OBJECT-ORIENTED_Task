@@ -13,7 +13,7 @@ class PlayerScript : public Behaviour
 public:
 
 	PlayerScript(GameObject* gameObject) : Behaviour(gameObject)
-		,map(gameObject->getParent()), currentX(0),currentY(0)
+		, map(gameObject->getParent()), currentX(0), currentY(0)
 	{
 		auto pos = transform->getPos();
 		currentX = pos.x;
@@ -33,6 +33,8 @@ public:
 
 	void update() override
 	{
+		if (!gameObject->isAlive()) return;
+
 		auto dim = renderer->getDimension();
 		auto shape = renderer->getShape();
 		auto pos = transform->getPos();
@@ -41,15 +43,8 @@ public:
 
 		if (mapScript->isCruched(shape, pos, width, height))
 		{
-			Borland::Gotoxy(5, 35);
-			printf("Cruch");
-			Borland::Gotoxy(0, 0);
-		}
-		else
-		{
-			Borland::Gotoxy(5, 35);
-			printf("not  ");
-			Borland::Gotoxy(0, 0);
+			gameObject->setAlive(false);
+			//exit(0);
 		}
 
 		if (input->getKey(VK_DOWN))

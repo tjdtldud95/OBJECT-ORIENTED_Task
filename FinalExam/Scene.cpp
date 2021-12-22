@@ -7,6 +7,11 @@ void Scene::update() {
         return;
     }
 
+    if (!player->isAlive())
+    {
+        return;
+    }
+
     internalRemove();
     internalRender(Position::zeros, false);
     internalUpdate();

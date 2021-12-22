@@ -7,7 +7,7 @@ class MapScript :
 	public Behaviour
 {
 	bool* map;
-	static const char rectFill = '\xdb';
+	static const char rectFill = '\xdb'; //
 
 public :
 	MapScript(GameObject* gameObject) : Behaviour(gameObject),

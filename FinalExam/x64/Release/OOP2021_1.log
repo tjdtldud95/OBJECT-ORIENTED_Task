@@ -3,9 +3,15 @@ C:\Users\USER\Documents\GitHub\OBJECT-ORIENTED_Task\FinalExam\Screen.h(73,4): wa
 C:\Users\USER\Documents\GitHub\OBJECT-ORIENTED_Task\FinalExam\Renderer.h(28,9): warning C4996: 'strncpy': This function or variable may be unsafe. Consider using strncpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
 C:\Users\USER\Documents\GitHub\OBJECT-ORIENTED_Task\FinalExam\Renderer.h(53,3): warning C4996: 'strncpy': This function or variable may be unsafe. Consider using strncpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
 C:\Users\USER\Documents\GitHub\OBJECT-ORIENTED_Task\FinalExam\MapScript.h(65,1): warning C4267: '인수': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
+  UiScript.cpp
+C:\Users\USER\Documents\GitHub\OBJECT-ORIENTED_Task\FinalExam\Screen.h(73,4): warning C4996: 'strncpy': This function or variable may be unsafe. Consider using strncpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\USER\Documents\GitHub\OBJECT-ORIENTED_Task\FinalExam\Renderer.h(28,9): warning C4996: 'strncpy': This function or variable may be unsafe. Consider using strncpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+C:\Users\USER\Documents\GitHub\OBJECT-ORIENTED_Task\FinalExam\Renderer.h(53,3): warning C4996: 'strncpy': This function or variable may be unsafe. Consider using strncpy_s instead. To disable deprecation, use _CRT_SECURE_NO_WARNINGS. See online help for details.
+  main.cpp
+C:\Users\USER\Documents\GitHub\OBJECT-ORIENTED_Task\FinalExam\MapScript.h(65,1): warning C4267: '인수': 'size_t'에서 'int'(으)로 변환하면서 데이터가 손실될 수 있습니다.
   코드를 생성하고 있습니다.
-  2 of 539 functions ( 0.4%) were compiled, the rest were copied from previous compilation.
+  5 of 563 functions ( 0.9%) were compiled, the rest were copied from previous compilation.
     0 functions were new in current compilation
-    3 functions had inline decision re-evaluated but remain unchanged
+    1 functions had inline decision re-evaluated but remain unchanged
   코드를 생성했습니다.
   OOP2021_1.vcxproj -> C:\Users\USER\Documents\GitHub\OBJECT-ORIENTED_Task\FinalExam\x64\Release\Game.exe

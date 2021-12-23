@@ -49,7 +49,7 @@ public:
 
 	static Screen* GetInstance() {
 		if (Instance == nullptr) {
-			Instance = new Screen(80, 35);
+			Instance = new Screen(70, 20);
 		}
 		return Instance;
 	}

@@ -22,5 +22,7 @@ public:
         if (title.length() == 0) return;
         screen->draw({ worldPos.x + 1, worldPos.y-1 }, title.c_str());
     }
+
 };
+
 

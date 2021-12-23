@@ -22,9 +22,6 @@ public:
 		mapScript = map->getComponent<MapScript>();
 	}
 
-	~PlayerScript()
-	{ }
-
 	void start() override
 	{
 		gameObject->setName("Player");
@@ -33,8 +30,6 @@ public:
 
 	void update() override
 	{
-		if (!gameObject->isAlive()) return;
-
 		auto dim = renderer->getDimension();
 		auto shape = renderer->getShape();
 		auto pos = transform->getPos();
@@ -44,7 +39,6 @@ public:
 		if (mapScript->isCruched(shape, pos, width, height))
 		{
 			gameObject->setAlive(false);
-			//exit(0);
 		}
 
 		if (input->getKey(VK_DOWN))

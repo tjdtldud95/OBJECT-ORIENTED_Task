@@ -49,6 +49,7 @@ public:
 		return candidates[0];
 	}
 
+
 	void move()
 	{
 		auto shape = renderer->getShape();
@@ -72,6 +73,5 @@ public:
 			mapScript->place(shape, pos, width, height);
 		}
 	}
-
 };
 

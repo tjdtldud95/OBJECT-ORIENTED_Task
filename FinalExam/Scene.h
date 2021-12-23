@@ -6,6 +6,7 @@
 #include "PlayerScript.h"
 #include "Animation.h"
 #include "MapScript.h"
+#include "UiScript.h"
 #include "ObstacleManager.h"
 using namespace std;
 
@@ -16,6 +17,7 @@ class Scene : public GameObject
     GameObject* player;
     GameObject* map;
     GameObject* obstacles;
+    GameObject* gameOverUI;
 
 public:
 
@@ -23,8 +25,10 @@ public:
         : GameObject{ nullptr, "root", "root", nullptr, {1, 1}, {0, 0}, Position::zeros }, isCompleted(false),
         input( Input::GetInstance() )
     {   
+        //map
         map = new GameObject(this, "map", "panel", nullptr, { 70, 20 }, Position::zeros, Position::zeros);
         map->getOrAddComponent<MapScript>();
+
         //player
         player = new GameObject{ map,"Player","Player",nullptr,{5,3} ,{0,10} ,Position::zeros };
         player->addComponent< PlayerScript>();
@@ -36,6 +40,15 @@ public:
         //obstacle
         obstacles = new GameObject(map, "obstalce", "Manager", nullptr, Position::zeros, Position::zeros, Position::zeros);
         obstacles->getOrAddComponent<ObstacleManager>();
+
+        //UI
+        gameOverUI = new GameObject(this, "GameOver", "panel", nullptr, { 30,10 }, { 20,5 }, Position::zeros);
+        gameOverUI->getOrAddComponent<PanelRenderer>();
+        auto uiText = new GameObject(gameOverUI, "text", "text", nullptr, { 10,1 }, { 10,5 }, Position::zeros);
+        auto uiScript = uiText->getOrAddComponent<UiScript>();
+
+
+        gameOverUI->setActive(false);
     }
 
     void start() override { internalStart(); }

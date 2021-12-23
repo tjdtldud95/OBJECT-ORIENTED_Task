@@ -9,7 +9,10 @@ void Scene::update() {
 
     if (!player->isAlive())
     {
-        return;
+       map->setActive(false);
+       obstacles->setActive(false);
+       player->setActive(false);
+       gameOverUI->setActive(true);
     }
 
     internalRemove();
